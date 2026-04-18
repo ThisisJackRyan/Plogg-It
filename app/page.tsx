@@ -2,6 +2,7 @@ import { UserButton } from '@clerk/nextjs';
 import { currentUser } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { PloggMap } from '@/components/map';
+import { HomeFabs } from '@/components/home-fabs';
 
 export default async function HomePage() {
   // Middleware guards this route, so `currentUser()` always resolves.
@@ -13,8 +14,16 @@ export default async function HomePage() {
       <PloggMap />
 
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-4">
-        <div className="pointer-events-auto rounded-full bg-white/90 px-3 py-1 text-sm font-semibold shadow">
-          Plogg It
+        <div className="pointer-events-auto flex items-center gap-2">
+          <div className="rounded-full bg-white/90 px-3 py-1 text-sm font-semibold shadow">
+            Plogg It
+          </div>
+          <Link
+            href="/routes"
+            className="rounded-full bg-white/90 px-3 py-1 text-sm font-semibold shadow hover:bg-white"
+          >
+            My Routes
+          </Link>
         </div>
         <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/90 px-1 py-1 shadow">
           <Link
@@ -34,12 +43,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <Link
-        href="/report"
-        className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-brand-700"
-      >
-        + Report trash
-      </Link>
+      <HomeFabs />
     </main>
   );
 }

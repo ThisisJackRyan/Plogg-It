@@ -5,24 +5,28 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUser } from '@clerk/nextjs';
 import { PHOTO_TARGETS } from '@plogg/core';
-import { insertHotspot, uploadHotspotPhoto } from '@plogg/supabase';
+import { insertHotspot, linkHotspotToRoute, uploadHotspotPhoto } from '@plogg/supabase';
 import { HotspotInsert } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MapGL, { Marker, NavigationControl, type MarkerDragEvent } from 'react-map-gl';
 import { Button, FieldError, Input } from '@/components/ui';
 import { env } from '@/lib/env';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
+import { useRouteSession } from '@/components/route-session-context';
 
 type FormValues = Pick<HotspotInsert, 'description' | 'difficulty' | 'lat' | 'lng'>;
 
 export default function ReportPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const routeId = searchParams.get('routeId');
   const supabase = useSupabaseBrowser();
   const { user } = useUser();
+  const routeSession = useRouteSession();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -109,7 +113,7 @@ export default function ReportPage() {
         contentType: 'image/jpeg',
       });
 
-      await insertHotspot(
+      const newHotspot = await insertHotspot(
         supabase,
         { ...values, photoUrl },
         {
@@ -120,6 +124,11 @@ export default function ReportPage() {
             null,
         },
       );
+
+      if (routeId) {
+        await linkHotspotToRoute(supabase, routeId, newHotspot.id);
+        routeSession.incrementItemCount();
+      }
 
       router.replace('/');
       router.refresh();

@@ -23,7 +23,7 @@ export async function listHotspotsInBbox(
     status_filter: filter === 'all' ? null : filter,
   });
   if (error) throw error;
-  return (data ?? []).map(mapRpcRowToHotspot);
+  return ((data ?? []) as unknown as RpcRow[]).map(mapRpcRowToHotspot);
 }
 
 /**
@@ -40,7 +40,7 @@ export async function getHotspot(
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  return mapViewRowToHotspot(data);
+  return mapViewRowToHotspot(data as unknown as ViewRow);
 }
 
 export interface InsertHotspotCaller {
@@ -116,7 +116,8 @@ export async function cleanupHotspot(
   client: SupabaseClient,
   input: CleanupHotspotInput,
 ): Promise<Hotspot> {
-  const { data, error } = await client.rpc('cleanup_hotspot', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (client as any).rpc('cleanup_hotspot', {
     hotspot_id: input.hotspotId,
     cleanup_photo_url: input.cleanupPhotoUrl,
     cleaner_display_name: input.cleanerDisplayName ?? null,
@@ -128,7 +129,7 @@ export async function cleanupHotspot(
   return mapViewRowToHotspot(row as ViewRow);
 }
 
-// ---- mappers ---------------------------------------------------------------
+// ---- mappers (exported for use in routes.ts) --------------------------------
 
 type RpcRow = {
   id: string;
@@ -166,7 +167,7 @@ function mapRpcRowToHotspot(row: RpcRow): Hotspot {
   };
 }
 
-type ViewRow = {
+export type ViewRow = {
   id: string | null;
   reported_by: string | null;
   reporter_display_name: string | null;
@@ -183,7 +184,7 @@ type ViewRow = {
   cleanup_photo_url: string | null;
 };
 
-function mapViewRowToHotspot(row: ViewRow): Hotspot {
+export function mapViewRowToHotspot(row: ViewRow): Hotspot {
   if (!row.id || !row.reported_by || row.description == null || row.difficulty == null
       || !row.photo_url || !row.status || row.lat == null || row.lng == null
       || !row.created_at) {

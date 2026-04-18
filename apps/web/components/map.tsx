@@ -5,19 +5,20 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { BoundingBox, Hotspot } from '@plogg/types';
 import { useHotspotsInBbox } from '@plogg/supabase';
 import type { Map as MapboxMap } from 'mapbox-gl';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import MapGL, {
   GeolocateControl,
   Marker,
   NavigationControl,
   Popup,
   type MapLayerMouseEvent,
+  type MapRef,
   type ViewStateChangeEvent,
 } from 'react-map-gl';
 import { env } from '@/lib/env';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 
-const INITIAL_VIEW = {
+const FALLBACK_VIEW = {
   longitude: -122.4194,
   latitude: 37.7749,
   zoom: 12,
@@ -25,8 +26,36 @@ const INITIAL_VIEW = {
 
 export function PloggMap() {
   const supabase = useSupabaseBrowser();
+  const mapRef = useRef<MapRef | null>(null);
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
   const [selected, setSelected] = useState<Hotspot | null>(null);
+  const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lng: number; lat: number } | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setInitialView(FALLBACK_VIEW);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setInitialView({
+          longitude: pos.coords.longitude,
+          latitude: pos.coords.latitude,
+          zoom: 13,
+        });
+      },
+      () => setInitialView(FALLBACK_VIEW),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude }),
+      () => {},
+      { enableHighAccuracy: true },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox);
 
@@ -56,10 +85,35 @@ export function PloggMap() {
     setSelected(null);
   }, []);
 
+  const recenterOnUser = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
+        mapRef.current?.flyTo({
+          center: [pos.coords.longitude, pos.coords.latitude],
+          zoom: 14,
+          essential: true,
+        });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }, []);
+
+  if (!initialView) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-neutral-100 text-sm text-neutral-500">
+        Finding your location…
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0">
       <MapGL
-        initialViewState={INITIAL_VIEW}
+        ref={mapRef}
+        initialViewState={initialView}
         onMoveEnd={handleMoveEnd}
         onLoad={handleLoad}
         onClick={handleMapClick}
@@ -74,6 +128,15 @@ export function PloggMap() {
           showUserHeading
           positionOptions={{ enableHighAccuracy: true }}
         />
+
+        {userLocation ? (
+          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+            <span className="relative flex h-4 w-4">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-60" />
+              <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-blue-500 shadow" />
+            </span>
+          </Marker>
+        ) : null}
 
         {hotspots?.map((h) => (
           <Marker
@@ -104,6 +167,17 @@ export function PloggMap() {
           </Popup>
         ) : null}
       </MapGL>
+
+      <button
+        type="button"
+        onClick={recenterOnUser}
+        aria-label="Recenter on my location"
+        className="absolute bottom-6 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/10 transition hover:bg-neutral-50 active:scale-95"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A9.002 9.002 0 0 0 13 3.06V1h-2v2.06A9.002 9.002 0 0 0 3.06 11H1v2h2.06A9.002 9.002 0 0 0 11 20.94V23h2v-2.06A9.002 9.002 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z" />
+        </svg>
+      </button>
 
       {isFetching ? (
         <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs shadow">

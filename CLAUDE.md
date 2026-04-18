@@ -52,3 +52,17 @@ See `.env.example`. A single `.env.local` at the repo root covers the app. Clien
 - Prettier is the only formatter; ESLint is `next lint`.
 - React 19 is pinned via npm `overrides` — don't downgrade `@types/react`.
 - Generated Supabase types live in `packages/types/src/database.generated.ts` — regenerate after schema changes rather than editing by hand.
+
+### Supabase migration rules (read before touching `supabase/`)
+
+`supabase db push` has been failing because migrations get written that conflict with remote state, forcing manual fixes in the SQL editor — which then creates drift. Follow these rules to prevent that:
+
+1. **Never edit an existing migration file.** Once a migration is in `supabase/migrations/`, treat it as immutable — it may already be applied remotely. Always create a new one with `supabase migration new <descriptive_name>`.
+2. **Before writing a new migration, read every existing file in `supabase/migrations/`** to understand current schema state. Do not assume a clean slate. Check for: existing tables/columns with the same name, existing RLS policies, existing indexes, existing functions/triggers.
+3. **Run `supabase db diff` before `supabase db push`** to preview exactly what will run against remote. If the diff contains anything unexpected, stop and investigate — do not push.
+4. **If remote drift is suspected** (prior SQL-editor fixes, failed pushes), run `supabase db pull` first to capture remote state as a new migration, then reconcile locally before adding more changes.
+5. **Write idempotent DDL where reasonable**: `create table if not exists`, `create index if not exists`, `drop policy if exists ... ; create policy ...`. This makes re-runs and partial-apply recovery survivable.
+6. **Wrap multi-statement migrations so they succeed or fail as a unit.** Don't mix DDL that can't be rolled back (e.g. `create type`) with DML in the same file without thinking about re-run behavior.
+7. **After schema changes land, regenerate types** (`packages/types/src/database.generated.ts`) in the same PR — don't hand-edit.
+8. **Never run destructive SQL** (`drop table`, `drop column`, `truncate`) without explicit user confirmation, even in migrations.
+9. **If `supabase db push` fails, do not fix it by editing the remote via the SQL editor.** Report the error, propose a new corrective migration, and get user sign-off before applying.

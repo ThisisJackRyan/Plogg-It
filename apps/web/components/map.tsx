@@ -2,9 +2,10 @@
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-import type { BoundingBox, Hotspot } from '@plogg/types';
+import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
 import { useHotspotsInBbox } from '@plogg/supabase';
 import type { Map as MapboxMap } from 'mapbox-gl';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import MapGL, {
   GeolocateControl,
@@ -24,10 +25,13 @@ const FALLBACK_VIEW = {
   zoom: 12,
 };
 
+const CLEANED_COLOR = '#2563eb';
+
 export function PloggMap() {
   const supabase = useSupabaseBrowser();
   const mapRef = useRef<MapRef | null>(null);
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
+  const [filter, setFilter] = useState<HotspotStatusFilter>('active');
   const [selected, setSelected] = useState<Hotspot | null>(null);
   const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW | null>(null);
   const [userLocation, setUserLocation] = useState<{ lng: number; lat: number } | null>(null);
@@ -57,7 +61,7 @@ export function PloggMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox);
+  const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox, filter);
 
   const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
     const bounds = evt.target.getBounds();
@@ -149,7 +153,7 @@ export function PloggMap() {
               setSelected(h);
             }}
           >
-            <PinMarker difficulty={h.difficulty} />
+            <PinMarker hotspot={h} />
           </Marker>
         ))}
 
@@ -161,12 +165,14 @@ export function PloggMap() {
             offset={28}
             closeOnClick={false}
             onClose={() => setSelected(null)}
-            maxWidth="240px"
+            maxWidth="260px"
           >
             <HotspotCard hotspot={selected} />
           </Popup>
         ) : null}
       </MapGL>
+
+      <FilterPills value={filter} onChange={setFilter} />
 
       <button
         type="button"
@@ -180,17 +186,69 @@ export function PloggMap() {
       </button>
 
       {isFetching ? (
-        <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs shadow">
-          Loading hotspots…
+        <div className="pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs shadow">
+          Loading trash spots…
         </div>
       ) : null}
     </div>
   );
 }
 
-function PinMarker({ difficulty }: { difficulty: number }) {
+function FilterPills({
+  value,
+  onChange,
+}: {
+  value: HotspotStatusFilter;
+  onChange: (next: HotspotStatusFilter) => void;
+}) {
+  const options: { key: HotspotStatusFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'active', label: 'To clean' },
+    { key: 'cleaned', label: 'Cleaned' },
+  ];
+  return (
+    <div className="absolute left-1/2 top-4 flex -translate-x-1/2 overflow-hidden rounded-full bg-white/95 text-xs shadow">
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => onChange(opt.key)}
+          className={`px-3 py-1.5 font-medium transition ${
+            value === opt.key
+              ? 'bg-brand-600 text-white'
+              : 'text-black/70 hover:bg-black/5'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PinMarker({ hotspot }: { hotspot: Hotspot }) {
+  if (hotspot.status === 'cleaned') {
+    return (
+      <svg width="28" height="36" viewBox="0 0 28 36" aria-hidden>
+        <path
+          d="M14 35S27 22.8 27 13.5A13 13 0 1 0 1 13.5C1 22.8 14 35 14 35Z"
+          fill={CLEANED_COLOR}
+          stroke="white"
+          strokeWidth="2"
+        />
+        <path
+          d="M8.5 13.5 12.5 17.5 19.5 10"
+          stroke="white"
+          strokeWidth="2.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
   const colors = ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'];
-  const color = colors[Math.min(Math.max(difficulty, 1), 5) - 1] ?? '#22c55e';
+  const color = colors[Math.min(Math.max(hotspot.difficulty, 1), 5) - 1] ?? '#22c55e';
   return (
     <svg width="28" height="36" viewBox="0 0 28 36" aria-hidden>
       <path
@@ -205,6 +263,7 @@ function PinMarker({ difficulty }: { difficulty: number }) {
 }
 
 function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
+  const isCleaned = hotspot.status === 'cleaned';
   return (
     <div className="space-y-2 text-sm text-black">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -214,6 +273,28 @@ function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
         <span>Difficulty {hotspot.difficulty}/5</span>
         <span>{hotspot.reporterDisplayName ?? 'Anonymous'}</span>
       </div>
+      {isCleaned && hotspot.cleanupPhotoUrl ? (
+        <div className="space-y-1 border-t border-black/10 pt-2">
+          <p className="text-xs font-semibold text-blue-700">Cleaned ✓</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={hotspot.cleanupPhotoUrl}
+            alt="Cleanup proof"
+            className="aspect-video w-full rounded object-cover"
+          />
+          <p className="text-xs text-black/60">
+            by {hotspot.cleanerDisplayName ?? 'Anonymous'}
+          </p>
+        </div>
+      ) : null}
+      {!isCleaned ? (
+        <Link
+          href={`/cleanup/${hotspot.id}`}
+          className="block rounded-md bg-brand-600 px-3 py-2 text-center text-xs font-semibold text-white hover:bg-brand-700"
+        >
+          I cleaned this
+        </Link>
+      ) : null}
     </div>
   );
 }

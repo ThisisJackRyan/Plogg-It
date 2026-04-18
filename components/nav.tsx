@@ -30,7 +30,7 @@ export async function TopNav() {
       </Link>
       <NavLinks profileHref={profileHref} />
       <div className="flex shrink-0 items-center">
-        {user ? <UserButton afterSignOutUrl="/sign-in" /> : null}
+        {user ? <UserButton afterSignOutUrl="/" /> : null}
       </div>
     </header>
   );

@@ -3,6 +3,9 @@ import { z } from 'zod';
 export const HotspotStatus = z.enum(['active', 'cleaned', 'archived']);
 export type HotspotStatus = z.infer<typeof HotspotStatus>;
 
+// Map viewport filter. `null`/`all` returns active + cleaned.
+export type HotspotStatusFilter = 'all' | 'active' | 'cleaned';
+
 export const Difficulty = z.number().int().min(1).max(5);
 
 export const HotspotInsert = z.object({
@@ -25,6 +28,10 @@ export const Hotspot = z.object({
   lat: z.number(),
   lng: z.number(),
   createdAt: z.string(),
+  cleanedBy: z.string().nullable(),
+  cleanerDisplayName: z.string().nullable(),
+  cleanedAt: z.string().nullable(),
+  cleanupPhotoUrl: z.string().url().nullable(),
 });
 export type Hotspot = z.infer<typeof Hotspot>;
 

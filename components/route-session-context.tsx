@@ -9,8 +9,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { haversineMeters } from '@plogg/core';
-import type { LngLat } from '@plogg/core';
+import { GpsKalmanFilter, haversineMeters } from '@plogg/core';
+import type { GpsFix, LngLat } from '@plogg/core';
+
+const MAX_ACCEPTABLE_ACCURACY_M = 50;
 
 interface RouteSessionState {
   isActive: boolean;
@@ -21,7 +23,7 @@ interface RouteSessionState {
   getWaypoints: () => LngLat[];
   startSession: (routeId: string) => void;
   endSession: () => void;
-  addWaypoint: (point: LngLat) => void;
+  addWaypoint: (fix: GpsFix) => LngLat | null;
   incrementItemCount: () => void;
 }
 
@@ -37,9 +39,11 @@ export function RouteSessionProvider({ children }: { children: ReactNode }) {
   const waypointsRef = useRef<LngLat[]>([]);
   const startTimeRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const kalmanRef = useRef<GpsKalmanFilter>(new GpsKalmanFilter());
 
   const startSession = useCallback((id: string) => {
     waypointsRef.current = [];
+    kalmanRef.current.reset();
     startTimeRef.current = Date.now();
     setRouteId(id);
     setDistanceM(0);
@@ -65,15 +69,17 @@ export function RouteSessionProvider({ children }: { children: ReactNode }) {
     setItemCount(0);
   }, []);
 
-  const addWaypoint = useCallback((point: LngLat) => {
+  const addWaypoint = useCallback((fix: GpsFix): LngLat | null => {
+    if (fix.accuracy > MAX_ACCEPTABLE_ACCURACY_M) return null;
+    const smoothed = kalmanRef.current.update(fix);
     const prev = waypointsRef.current.at(-1);
     if (prev) {
-      const delta = haversineMeters(prev, point);
-      // Filter GPS jitter: ignore fixes within 3 m of the last recorded point.
-      if (delta < 3) return;
+      const delta = haversineMeters(prev, smoothed);
+      if (delta < 3) return null;
       setDistanceM((d) => d + delta);
     }
-    waypointsRef.current.push(point);
+    waypointsRef.current.push(smoothed);
+    return smoothed;
   }, []);
 
   const incrementItemCount = useCallback(() => {

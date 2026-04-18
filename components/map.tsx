@@ -55,7 +55,9 @@ export function PloggMap() {
   const [pathPoints, setPathPoints] = useState<LngLat[]>([]);
 
   // Buffer of waypoints not yet flushed to the DB.
-  const pendingWaypointsRef = useRef<Array<{ routeId: string; lat: number; lng: number }>>([]);
+  const pendingWaypointsRef = useRef<
+    Array<{ routeId: string; lat: number; lng: number; accuracyM: number }>
+  >([]);
 
   useEffect(() => {
     if (targetView) {
@@ -79,11 +81,23 @@ export function PloggMap() {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const point = { lng: pos.coords.longitude, lat: pos.coords.latitude };
-        setUserLocation(point);
+        const rawPoint = { lng: pos.coords.longitude, lat: pos.coords.latitude };
+        setUserLocation(rawPoint);
         if (routeSession.isActive && routeSession.routeId) {
-          routeSession.addWaypoint(point);
-          pendingWaypointsRef.current.push({ routeId: routeSession.routeId, ...point });
+          const smoothed = routeSession.addWaypoint({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            timestamp: pos.timestamp,
+          });
+          if (smoothed) {
+            pendingWaypointsRef.current.push({
+              routeId: routeSession.routeId,
+              lat: smoothed.lat,
+              lng: smoothed.lng,
+              accuracyM: pos.coords.accuracy,
+            });
+          }
         }
       },
       () => {},
@@ -100,7 +114,12 @@ export function PloggMap() {
       const batch = pendingWaypointsRef.current.splice(0);
       if (batch.length === 0) return;
       insertWaypointsMutation.mutate(
-        batch.map((w) => ({ routeId: w.routeId, lat: w.lat, lng: w.lng })),
+        batch.map((w) => ({
+          routeId: w.routeId,
+          lat: w.lat,
+          lng: w.lng,
+          accuracyM: w.accuracyM,
+        })),
       );
     }, 15_000);
     return () => clearInterval(interval);

@@ -3,11 +3,12 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { formatDistance } from '@plogg/core';
-import { useRoute, useRouteHotspots } from '@plogg/supabase';
+import type { LngLat } from '@plogg/core';
+import { useRoute, useRouteHotspots, useRouteWaypoints } from '@plogg/supabase';
 import type { Hotspot, Route } from '@plogg/types';
 import Link from 'next/link';
 import { use } from 'react';
-import MapGL, { Marker } from 'react-map-gl';
+import MapGL, { Layer, Marker, Source } from 'react-map-gl';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 import { env } from '@/lib/env';
 
@@ -30,21 +31,68 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RouteMap({ hotspots }: { hotspots: Hotspot[] }) {
-  if (hotspots.length === 0) return null;
+function RouteMap({
+  hotspots,
+  waypoints,
+}: {
+  hotspots: Hotspot[];
+  waypoints: LngLat[];
+}) {
+  const points: LngLat[] = [
+    ...waypoints,
+    ...hotspots.map((h) => ({ lat: h.lat, lng: h.lng })),
+  ];
+  if (points.length === 0) return null;
 
-  const centerLat = hotspots.reduce((s, h) => s + h.lat, 0) / hotspots.length;
-  const centerLng = hotspots.reduce((s, h) => s + h.lng, 0) / hotspots.length;
+  const lats = points.map((p) => p.lat);
+  const lngs = points.map((p) => p.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  const initialViewState =
+    minLat === maxLat && minLng === maxLng
+      ? { latitude: minLat, longitude: minLng, zoom: 15 }
+      : {
+          bounds: [
+            [minLng, minLat],
+            [maxLng, maxLat],
+          ] as [[number, number], [number, number]],
+          fitBoundsOptions: { padding: 32 },
+        };
 
   return (
     <div className="h-56 overflow-hidden rounded-xl border border-black/10 sm:h-72">
       <MapGL
         interactive={false}
-        initialViewState={{ latitude: centerLat, longitude: centerLng, zoom: 14 }}
+        initialViewState={initialViewState}
         mapStyle="mapbox://styles/mapbox/streets-v12"
         mapboxAccessToken={env.MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
+        {waypoints.length >= 2 ? (
+          <Source
+            id="route-path"
+            type="geojson"
+            data={{
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: waypoints.map((p) => [p.lng, p.lat]),
+              },
+              properties: {},
+            }}
+          >
+            <Layer
+              id="route-path-line"
+              type="line"
+              paint={{ 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            />
+          </Source>
+        ) : null}
+
         {hotspots.map((h) => (
           <Marker key={h.id} longitude={h.lng} latitude={h.lat} anchor="bottom">
             <svg width="22" height="28" viewBox="0 0 28 36" aria-hidden>
@@ -90,7 +138,15 @@ function HotspotItem({ hotspot }: { hotspot: Hotspot }) {
   );
 }
 
-function RouteSummary({ route, hotspots }: { route: Route; hotspots: Hotspot[] }) {
+function RouteSummary({
+  route,
+  hotspots,
+  waypoints,
+}: {
+  route: Route;
+  hotspots: Hotspot[];
+  waypoints: LngLat[];
+}) {
   const date = new Date(route.startedAt).toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',
@@ -109,7 +165,7 @@ function RouteSummary({ route, hotspots }: { route: Route; hotspots: Hotspot[] }
         </div>
       </div>
 
-      <RouteMap hotspots={hotspots} />
+      <RouteMap hotspots={hotspots} waypoints={waypoints} />
 
       {hotspots.length > 0 ? (
         <section className="space-y-3">
@@ -136,8 +192,12 @@ export default function RouteDetailPage({
   const supabase = useSupabaseBrowser();
   const { data: route, isLoading: routeLoading } = useRoute(supabase, id);
   const { data: hotspots = [], isLoading: hotspotsLoading } = useRouteHotspots(supabase, id);
+  const { data: waypoints = [], isLoading: waypointsLoading } = useRouteWaypoints(
+    supabase,
+    id,
+  );
 
-  const isLoading = routeLoading || hotspotsLoading;
+  const isLoading = routeLoading || hotspotsLoading || waypointsLoading;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
@@ -151,7 +211,7 @@ export default function RouteDetailPage({
       {isLoading ? (
         <p className="text-sm text-black/50">Loading…</p>
       ) : route ? (
-        <RouteSummary route={route} hotspots={hotspots} />
+        <RouteSummary route={route} hotspots={hotspots} waypoints={waypoints} />
       ) : (
         <p className="text-sm text-red-600">Route not found.</p>
       )}

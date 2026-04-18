@@ -5,6 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
+import type { LngLat } from '@plogg/core';
 import type { Hotspot, Route, RouteWaypointInsert } from '@plogg/types';
 import type { SupabaseClient } from '../client';
 import {
@@ -14,6 +15,7 @@ import {
   linkHotspotToRoute,
   listMyRoutes,
   listRouteHotspots,
+  listRouteWaypoints,
   startRoute,
 } from '../queries/routes';
 
@@ -46,6 +48,17 @@ export function useRouteHotspots(
     queryKey: [...ROUTES_KEY, 'hotspots', routeId],
     enabled: routeId !== null,
     queryFn: () => listRouteHotspots(client, routeId!),
+  });
+}
+
+export function useRouteWaypoints(
+  client: SupabaseClient,
+  routeId: string | null,
+): UseQueryResult<LngLat[], Error> {
+  return useQuery({
+    queryKey: [...ROUTES_KEY, 'waypoints', routeId],
+    enabled: routeId !== null,
+    queryFn: () => listRouteWaypoints(client, routeId!),
   });
 }
 

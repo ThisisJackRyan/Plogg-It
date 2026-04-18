@@ -1,3 +1,4 @@
+import type { LngLat } from '@plogg/core';
 import type { Hotspot, Route, RouteWaypointInsert } from '@plogg/types';
 import type { SupabaseClient } from '../client';
 import { mapViewRowToHotspot, type ViewRow } from './hotspots';
@@ -93,6 +94,22 @@ export async function getRoute(
   if (error) throw error;
   if (!data) return null;
   return mapRouteRow(data as RouteRow);
+}
+
+export async function listRouteWaypoints(
+  client: SupabaseClient,
+  routeId: string,
+): Promise<LngLat[]> {
+  const { data, error } = await (client as AnyClient)
+    .from('route_waypoints_public')
+    .select('lat, lng, recorded_at')
+    .eq('route_id', routeId)
+    .order('recorded_at');
+  if (error) throw error;
+  return ((data ?? []) as Array<{ lat: number; lng: number }>).map((r) => ({
+    lat: r.lat,
+    lng: r.lng,
+  }));
 }
 
 export async function listRouteHotspots(

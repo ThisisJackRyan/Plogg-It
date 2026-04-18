@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
 import type { LngLat } from '@plogg/core';
 import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, MapPin } from 'lucide-react';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -53,6 +53,10 @@ export function PloggMap() {
   const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW | null>(null);
   const [userLocation, setUserLocation] = useState<LngLat | null>(null);
   const [pathPoints, setPathPoints] = useState<LngLat[]>([]);
+  const [locationStatus, setLocationStatus] = useState<
+    'pending' | 'granted' | 'denied' | 'unavailable'
+  >('pending');
+  const [promptDismissed, setPromptDismissed] = useState(false);
 
   // Buffer of waypoints not yet flushed to the DB.
   const pendingWaypointsRef = useRef<
@@ -62,18 +66,25 @@ export function PloggMap() {
   useEffect(() => {
     if (targetView) {
       setInitialView(targetView);
+      setLocationStatus('granted');
     } else if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setInitialView(FALLBACK_VIEW);
+      setLocationStatus('unavailable');
     } else {
+      setInitialView(FALLBACK_VIEW);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setInitialView({
-            longitude: pos.coords.longitude,
-            latitude: pos.coords.latitude,
-            zoom: 13,
+          setLocationStatus('granted');
+          setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
+          mapRef.current?.flyTo({
+            center: [pos.coords.longitude, pos.coords.latitude],
+            zoom: 14,
+            essential: true,
           });
         },
-        () => setInitialView(FALLBACK_VIEW),
+        (err) => {
+          setLocationStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable');
+        },
         { enableHighAccuracy: true, timeout: 8000 },
       );
     }
@@ -83,6 +94,7 @@ export function PloggMap() {
       (pos) => {
         const rawPoint = { lng: pos.coords.longitude, lat: pos.coords.latitude };
         setUserLocation(rawPoint);
+        setLocationStatus('granted');
         if (routeSession.isActive && routeSession.routeId) {
           const smoothed = routeSession.addWaypoint({
             lat: pos.coords.latitude,
@@ -180,6 +192,8 @@ export function PloggMap() {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setLocationStatus('granted');
+        setPromptDismissed(true);
         setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
         mapRef.current?.flyTo({
           center: [pos.coords.longitude, pos.coords.latitude],
@@ -187,18 +201,19 @@ export function PloggMap() {
           essential: true,
         });
       },
-      () => {},
+      (err) => {
+        setLocationStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable');
+      },
       { enableHighAccuracy: true, timeout: 8000 },
     );
   }, []);
 
   if (!initialView) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 text-sm text-neutral-500">
-        Finding your location…
-      </div>
-    );
+    return <MapSkeleton />;
   }
+
+  const showLocationPrompt =
+    !promptDismissed && !targetView && locationStatus !== 'granted';
 
   return (
     <div className="absolute inset-0">
@@ -293,6 +308,106 @@ export function PloggMap() {
           Loading trash spots…
         </div>
       ) : null}
+
+      {showLocationPrompt ? (
+        <LocationPrompt
+          status={locationStatus}
+          onEnable={recenterOnUser}
+          onDismiss={() => setPromptDismissed(true)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function MapSkeleton() {
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-brand-500/20 via-brand-500/10 to-brand-500/5">
+      <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.6),transparent_40%),radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.5),transparent_40%)]" />
+      <div className="relative flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-brand-700">
+          <div className="relative flex h-12 w-12 items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-40" />
+            <MapPin aria-hidden className="relative h-8 w-8" />
+          </div>
+          <p className="text-sm font-medium">Loading the map…</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LocationPrompt({
+  status,
+  onEnable,
+  onDismiss,
+}: {
+  status: 'pending' | 'granted' | 'denied' | 'unavailable';
+  onEnable: () => void;
+  onDismiss: () => void;
+}) {
+  const isDenied = status === 'denied';
+  const isUnavailable = status === 'unavailable';
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 sm:items-center">
+      <div className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/10 backdrop-blur">
+        <div className="bg-gradient-to-br from-brand-500 to-brand-700 px-5 py-6 text-white">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-11 w-11 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40" />
+              <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/20">
+                <MapPin aria-hidden className="h-6 w-6" />
+              </span>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold leading-tight">
+                Find trash near you
+              </h2>
+              <p className="text-xs text-white/85">
+                Share your location to see nearby hotspots
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-3 px-5 py-4">
+          {isDenied ? (
+            <p className="text-sm text-black/70">
+              Location is blocked. Enable it in your browser settings to see
+              what&apos;s nearby — we only use it to center the map.
+            </p>
+          ) : isUnavailable ? (
+            <p className="text-sm text-black/70">
+              We couldn&apos;t read your location. You can still browse the map
+              or try again.
+            </p>
+          ) : (
+            <p className="text-sm text-black/70">
+              Plogg Club uses your location to show trash spots nearby and help
+              you drop accurate pins. We never share it.
+            </p>
+          )}
+          <div className="flex gap-2">
+            {!isDenied ? (
+              <button
+                type="button"
+                onClick={onEnable}
+                className="flex-1 rounded-lg bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98]"
+              >
+                Share my location
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onDismiss}
+              className={`rounded-lg px-3 py-2.5 text-sm font-medium text-black/70 transition hover:bg-black/5 ${
+                isDenied ? 'flex-1' : ''
+              }`}
+            >
+              {isDenied ? 'Browse the map' : 'Not now'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

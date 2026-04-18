@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from '@/components/providers';
+import { clerkAppearance } from '@/lib/clerk-appearance';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" suppressHydrationWarning>
         <body suppressHydrationWarning>
           <Providers>{children}</Providers>

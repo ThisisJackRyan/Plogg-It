@@ -1,7 +1,7 @@
 import { getHotspot } from '@plogg/supabase';
 import { FeedEventType } from '@plogg/types';
 import { notFound } from 'next/navigation';
-import { TopNav } from '@/components/nav';
+import { PageTransition } from '@/components/motion';
 import { EventDetail } from './event-detail';
 import { getSupabaseServer } from '@/lib/supabase/server';
 
@@ -21,11 +21,10 @@ export default async function EventPage({
   if (type.data === 'cleanup' && hotspot.status !== 'cleaned') notFound();
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <TopNav />
-      <div className="mx-auto max-w-xl px-4 py-4">
+    <main className="flex-1 bg-neutral-50">
+      <PageTransition className="mx-auto max-w-xl px-4 py-4">
         <EventDetail hotspot={hotspot} eventType={type.data} />
-      </div>
+      </PageTransition>
     </main>
   );
 }

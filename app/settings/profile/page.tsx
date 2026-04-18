@@ -1,7 +1,6 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getProfileById } from '@plogg/supabase';
 import { redirect } from 'next/navigation';
-import { TopNav } from '@/components/nav';
 import { ProfileSettingsForm } from './form';
 import { getSupabaseServer } from '@/lib/supabase/server';
 
@@ -21,8 +20,7 @@ export default async function ProfileSettingsPage() {
     user?.fullName ?? user?.primaryEmailAddress?.emailAddress?.split('@')[0] ?? '';
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <TopNav active="profile" />
+    <main className="flex-1 bg-neutral-50">
       <div className="mx-auto max-w-md space-y-6 px-4 py-6">
         <h1 className="text-xl font-semibold">Your profile</h1>
         <ProfileSettingsForm

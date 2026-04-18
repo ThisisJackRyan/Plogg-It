@@ -19,8 +19,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MapGL, { Marker, NavigationControl, type MarkerDragEvent } from 'react-map-gl';
-import { toast } from 'sonner';
 import { Button, FieldError, Input } from '@/components/ui';
+import { CleanupCelebration } from '@/components/cleanup-celebration';
+import { PageTransition } from '@/components/motion';
 import { env } from '@/lib/env';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 import { useRouteSession } from '@/components/route-session-context';
@@ -49,6 +50,11 @@ function ReportPageInner() {
   const [cleanupPhotoPreview, setCleanupPhotoPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [celebration, setCelebration] = useState<{
+    open: boolean;
+    pointsEarned: number;
+    totalPoints: number | null;
+  }>({ open: false, pointsEarned: 0, totalPoints: null });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cleanupFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,26 +182,29 @@ function ReportPageInner() {
         routeSession.incrementItemCount();
       }
 
-      const { data: ledgerRow } = await supabase
-        .from('point_ledger')
-        .select('id, amount')
-        .eq('user_id', user.id)
-        .eq('reason', 'hotspot_reported')
-        .eq('reference_id', newHotspot.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [{ data: ledgerRow }, { data: statsRow }] = await Promise.all([
+        supabase
+          .from('point_ledger')
+          .select('id, amount')
+          .eq('user_id', user.id)
+          .eq('reason', 'hotspot_reported')
+          .eq('reference_id', newHotspot.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('user_stats')
+          .select('total_points')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
 
       const awardedPoints = ledgerRow?.amount ?? 10;
-      toast.success('Hotspot Reported! 🎉', {
-        id: ledgerRow?.id
-          ? `point-ledger-${ledgerRow.id}`
-          : `hotspot-reported-${newHotspot.id}`,
-        description: `You earned ${awardedPoints} points for reporting a trash hotspot.`,
+      setCelebration({
+        open: true,
+        pointsEarned: awardedPoints,
+        totalPoints: statsRow?.total_points ?? null,
       });
-
-      router.replace('/');
-      router.refresh();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -204,7 +213,8 @@ function ReportPageInner() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
+    <main>
+    <PageTransition className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Report trash</h1>
         <Link href="/" className="text-sm text-brand-700 hover:underline">
@@ -403,6 +413,23 @@ function ReportPageInner() {
               : 'Report trash'}
         </Button>
       </form>
+
+      <CleanupCelebration
+        open={celebration.open}
+        pointsEarned={celebration.pointsEarned}
+        totalPoints={celebration.totalPoints}
+        title={alreadyCleaned ? 'Reported & Cleaned!' : 'Hotspot Reported!'}
+        subtitle={
+          alreadyCleaned
+            ? 'Double win — reported and cleaned in one go.'
+            : "It's only a matter of time till this is cleaned up."
+        }
+        onContinue={() => {
+          router.replace('/');
+          router.refresh();
+        }}
+      />
+    </PageTransition>
     </main>
   );
 }

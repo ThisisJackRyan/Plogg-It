@@ -2,6 +2,7 @@
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
+import { motion } from 'framer-motion';
 import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
 import type { LngLat } from '@plogg/core';
 import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
@@ -11,6 +12,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MapGL, {
+  GeolocateControl,
   Layer,
   Marker,
   NavigationControl,
@@ -50,7 +52,9 @@ export function PloggMap() {
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
   const [filter, setFilter] = useState<HotspotStatusFilter>('active');
   const [selected, setSelected] = useState<Hotspot | null>(null);
-  const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW | null>(null);
+  const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW>(
+    () => targetView ?? FALLBACK_VIEW,
+  );
   const [userLocation, setUserLocation] = useState<LngLat | null>(null);
   const [pathPoints, setPathPoints] = useState<LngLat[]>([]);
   const [locationStatus, setLocationStatus] = useState<
@@ -208,12 +212,21 @@ export function PloggMap() {
     );
   }, []);
 
-  if (!initialView) {
-    return <MapSkeleton />;
-  }
-
   const showLocationPrompt =
     !promptDismissed && !targetView && locationStatus !== 'granted';
+
+  if (showLocationPrompt) {
+    return (
+      <div className="absolute inset-0">
+        <MapSkeleton showIndicator={false} />
+        <LocationPrompt
+          status={locationStatus}
+          onEnable={recenterOnUser}
+          onDismiss={() => setPromptDismissed(true)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0">
@@ -228,6 +241,12 @@ export function PloggMap() {
         style={{ width: '100%', height: '100%' }}
       >
         <NavigationControl position="top-right" />
+        <GeolocateControl
+          position="top-right"
+          trackUserLocation
+          showUserHeading
+          positionOptions={{ enableHighAccuracy: true }}
+        />
 
         {userLocation ? (
           <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
@@ -292,47 +311,31 @@ export function PloggMap() {
 
       <FilterPills value={filter} onChange={setFilter} />
 
-      <button
-        type="button"
-        onClick={recenterOnUser}
-        aria-label="Recenter on my location"
-        className={`absolute right-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/10 transition hover:bg-neutral-50 active:scale-95 ${routeSession.isActive ? 'bottom-48' : 'bottom-6'}`}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A9.002 9.002 0 0 0 13 3.06V1h-2v2.06A9.002 9.002 0 0 0 3.06 11H1v2h2.06A9.002 9.002 0 0 0 11 20.94V23h2v-2.06A9.002 9.002 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z" />
-        </svg>
-      </button>
-
       {isFetching ? (
         <div className="pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs shadow">
           Loading trash spots…
         </div>
       ) : null}
 
-      {showLocationPrompt ? (
-        <LocationPrompt
-          status={locationStatus}
-          onEnable={recenterOnUser}
-          onDismiss={() => setPromptDismissed(true)}
-        />
-      ) : null}
     </div>
   );
 }
 
-function MapSkeleton() {
+function MapSkeleton({ showIndicator = true }: { showIndicator?: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-brand-500/20 via-brand-500/10 to-brand-500/5">
       <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.6),transparent_40%),radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.5),transparent_40%)]" />
-      <div className="relative flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-brand-700">
-          <div className="relative flex h-12 w-12 items-center justify-center">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-40" />
-            <MapPin aria-hidden className="relative h-8 w-8" />
+      {showIndicator ? (
+        <div className="relative flex h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-brand-700">
+            <div className="relative flex h-12 w-12 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-40" />
+              <MapPin aria-hidden className="relative h-8 w-8" />
+            </div>
+            <p className="text-sm font-medium">Loading the map…</p>
           </div>
-          <p className="text-sm font-medium">Loading the map…</p>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -349,41 +352,63 @@ function LocationPrompt({
   const isDenied = status === 'denied';
   const isUnavailable = status === 'unavailable';
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 sm:items-center">
-      <div className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/10 backdrop-blur">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 sm:items-center"
+    >
+      <motion.div
+        initial={{ y: 24, opacity: 0, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 24, delay: 0.08 }}
+        className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/10 backdrop-blur"
+      >
         <div className="bg-gradient-to-br from-brand-500 to-brand-700 px-5 py-6 text-white">
           <div className="flex items-center gap-3">
-            <div className="relative flex h-11 w-11 items-center justify-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 18, delay: 0.22 }}
+              className="relative flex h-11 w-11 items-center justify-center"
+            >
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40" />
               <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/20">
                 <MapPin aria-hidden className="h-6 w-6" />
               </span>
-            </div>
-            <div>
+            </motion.div>
+            <motion.div
+              initial={{ x: -8, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
               <h2 className="text-base font-semibold leading-tight">
-                Find trash near you
+                Location is highly recommended
               </h2>
               <p className="text-xs text-white/85">
-                Share your location to see nearby hotspots
+                Plogg Club won&apos;t really work without it
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
         <div className="space-y-3 px-5 py-4">
           {isDenied ? (
             <p className="text-sm text-black/70">
-              Location is blocked. Enable it in your browser settings to see
-              what&apos;s nearby — we only use it to center the map.
+              Location is blocked. We highly recommend enabling it in your
+              browser settings — Plogg Club uses it to show nearby trash, track
+              your route while plogging, and drop accurate pins.
             </p>
           ) : isUnavailable ? (
             <p className="text-sm text-black/70">
-              We couldn&apos;t read your location. You can still browse the map
-              or try again.
+              We couldn&apos;t read your location. Most of Plogg Club — route
+              tracking, nearby trash, accurate pins — needs it to work, so try
+              again when you can.
             </p>
           ) : (
             <p className="text-sm text-black/70">
-              Plogg Club uses your location to show trash spots nearby and help
-              you drop accurate pins. We never share it.
+              We highly recommend sharing your location. Plogg Club uses it to
+              show nearby trash, track your route while plogging, and drop
+              accurate pins — the site won&apos;t really work without it.
             </p>
           )}
           <div className="flex gap-2">
@@ -407,8 +432,8 @@ function LocationPrompt({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -426,20 +451,28 @@ function FilterPills({
   ];
   return (
     <div className="absolute left-1/2 top-3 flex -translate-x-1/2 overflow-hidden rounded-full bg-white/95 text-xs shadow sm:top-4 sm:text-sm">
-      {options.map((opt) => (
-        <button
-          key={opt.key}
-          type="button"
-          onClick={() => onChange(opt.key)}
-          className={`whitespace-nowrap px-4 py-2 font-medium transition ${
-            value === opt.key
-              ? 'bg-brand-600 text-white'
-              : 'text-black/70 hover:bg-black/5'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
+      {options.map((opt) => {
+        const isActive = value === opt.key;
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => onChange(opt.key)}
+            className="relative whitespace-nowrap px-4 py-2 font-medium transition-colors duration-200 active:scale-[0.97]"
+          >
+            {isActive ? (
+              <motion.span
+                layoutId="filter-pill-active"
+                className="absolute inset-0 rounded-full bg-brand-600"
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span className={`relative z-10 ${isActive ? 'text-white' : 'text-black/70'}`}>
+              {opt.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

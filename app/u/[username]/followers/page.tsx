@@ -1,6 +1,5 @@
 import { getProfileByUsername, listFollowers } from '@plogg/supabase';
 import { notFound } from 'next/navigation';
-import { TopNav } from '@/components/nav';
 import { ProfileList } from '@/components/profile-list';
 import { getSupabaseServer } from '@/lib/supabase/server';
 
@@ -17,8 +16,7 @@ export default async function FollowersPage({
   const followers = await listFollowers(supabase, profile.id);
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <TopNav />
+    <main className="flex-1 bg-neutral-50">
       <div className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <h1 className="text-lg font-semibold">
           Followers of @{profile.username ?? profile.id}

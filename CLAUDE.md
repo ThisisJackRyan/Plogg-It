@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Plogg It — map-based community trash reporting. Users drop pins on a map to report trash "hotspots" and mark them cleaned up. Next.js web app backed by Supabase (DB + storage) with Clerk as the identity provider via Supabase's Third-Party Auth integration.
+Plogg Club — map-based community trash reporting. Users drop pins on a map to report trash "hotspots" and mark them cleaned up. Next.js web app backed by Supabase (DB + storage) with Clerk as the identity provider via Supabase's Third-Party Auth integration.
 
 ## Commands
 

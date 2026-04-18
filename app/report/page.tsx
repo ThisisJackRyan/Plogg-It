@@ -8,6 +8,7 @@ import { PHOTO_TARGETS } from '@plogg/core';
 import { insertHotspot, linkHotspotToRoute, uploadHotspotPhoto } from '@plogg/supabase';
 import { HotspotInsert } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
+import { Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -223,7 +224,7 @@ function ReportPageInner() {
               onClick={() => fileInputRef.current?.click()}
               className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-black/20 text-sm opacity-70 hover:bg-black/2"
             >
-              <span className="text-2xl">📷</span>
+              <Camera aria-hidden className="h-7 w-7 text-black/60" />
               <span>Tap to take or choose a photo</span>
             </button>
           )}

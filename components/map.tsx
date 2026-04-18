@@ -5,6 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
 import type { LngLat } from '@plogg/core';
 import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
+import { CheckCircle2 } from 'lucide-react';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -335,7 +336,10 @@ function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
       </div>
       {isCleaned && hotspot.cleanupPhotoUrl ? (
         <div className="space-y-1 border-t border-black/10 pt-2">
-          <p className="text-xs font-semibold text-blue-700">Cleaned ✓</p>
+          <p className="flex items-center gap-1 text-xs font-semibold text-blue-700">
+            <CheckCircle2 aria-hidden className="h-3.5 w-3.5" />
+            Cleaned
+          </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={hotspot.cleanupPhotoUrl}

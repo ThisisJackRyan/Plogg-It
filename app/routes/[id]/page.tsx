@@ -24,7 +24,7 @@ function formatDuration(startedAt: string, endedAt: string | null): string {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-2xl font-bold tabular-nums">{value}</span>
+      <span className="text-xl font-bold tabular-nums sm:text-2xl">{value}</span>
       <span className="text-xs font-medium uppercase tracking-wide text-black/50">{label}</span>
     </div>
   );
@@ -37,7 +37,7 @@ function RouteMap({ hotspots }: { hotspots: Hotspot[] }) {
   const centerLng = hotspots.reduce((s, h) => s + h.lng, 0) / hotspots.length;
 
   return (
-    <div className="h-48 overflow-hidden rounded-xl border border-black/10">
+    <div className="h-56 overflow-hidden rounded-xl border border-black/10 sm:h-72">
       <MapGL
         interactive={false}
         initialViewState={{ latitude: centerLat, longitude: centerLng, zoom: 14 }}
@@ -101,8 +101,8 @@ function RouteSummary({ route, hotspots }: { route: Route; hotspots: Hotspot[] }
     <div className="space-y-6">
       <p className="text-sm text-black/50">{date}</p>
 
-      <div className="rounded-xl border border-black/10 bg-white px-6 py-5">
-        <div className="flex justify-around">
+      <div className="rounded-xl border border-black/10 bg-white px-4 py-5 sm:px-6">
+        <div className="flex justify-around gap-2">
           <Stat label="Distance" value={formatDistance(route.totalDistanceM ?? 0)} />
           <Stat label="Time" value={formatDuration(route.startedAt, route.endedAt)} />
           <Stat label="Finds" value={String(route.hotspotCount)} />
@@ -140,7 +140,7 @@ export default function RouteDetailPage({
   const isLoading = routeLoading || hotspotsLoading;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Route Summary</h1>
         <Link href="/routes" className="text-sm text-brand-700 hover:underline">

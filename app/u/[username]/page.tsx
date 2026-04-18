@@ -28,30 +28,30 @@ export default async function ProfilePage({
     <main className="min-h-screen bg-neutral-50">
       <TopNav active={isSelf ? 'profile' : undefined} />
       <div className="mx-auto max-w-xl space-y-6 px-4 py-6">
-        <header className="flex items-start gap-4">
+        <header className="flex flex-wrap items-start gap-3 sm:gap-4">
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatarUrl}
               alt=""
-              className="h-16 w-16 rounded-full object-cover"
+              className="h-14 w-14 rounded-full object-cover sm:h-16 sm:w-16"
             />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-brand-600/10" />
+            <div className="h-14 w-14 rounded-full bg-brand-600/10 sm:h-16 sm:w-16" />
           )}
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl font-semibold">
               {profile.displayName ?? profile.username ?? 'Anonymous'}
             </h1>
             {profile.username ? (
-              <p className="text-sm text-black/60">@{profile.username}</p>
+              <p className="truncate text-sm text-black/60">@{profile.username}</p>
             ) : null}
-            {profile.bio ? <p className="mt-2 text-sm">{profile.bio}</p> : null}
+            {profile.bio ? <p className="mt-2 text-sm break-words">{profile.bio}</p> : null}
           </div>
           {isSelf ? (
             <a
               href="/settings/profile"
-              className="rounded-lg bg-white px-3 py-2 text-xs font-medium ring-1 ring-black/10 hover:bg-black/5"
+              className="shrink-0 rounded-lg bg-white px-3 py-2 text-sm font-medium ring-1 ring-black/10 hover:bg-black/5"
             >
               Edit
             </a>
@@ -60,7 +60,7 @@ export default async function ProfilePage({
           ) : null}
         </header>
 
-        <section className="grid grid-cols-4 gap-2 rounded-xl bg-white p-4 text-center text-sm shadow-sm ring-1 ring-black/5">
+        <section className="grid grid-cols-2 gap-2 rounded-xl bg-white p-4 text-center text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-4">
           <Stat label="Followers" value={stats.followersCount} href={`/u/${username}/followers`} />
           <Stat label="Following" value={stats.followingCount} href={`/u/${username}/following`} />
           <Stat label="Reports" value={stats.reportsCount} />

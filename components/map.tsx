@@ -175,7 +175,7 @@ export function PloggMap() {
 
   if (!initialView) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-neutral-100 text-sm text-neutral-500">
+      <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 text-sm text-neutral-500">
         Finding your location…
       </div>
     );
@@ -291,13 +291,13 @@ function FilterPills({
     { key: 'cleaned', label: 'Cleaned' },
   ];
   return (
-    <div className="absolute left-1/2 top-4 flex -translate-x-1/2 overflow-hidden rounded-full bg-white/95 text-xs shadow">
+    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 overflow-hidden rounded-full bg-white/95 text-xs shadow sm:top-4 sm:text-sm">
       {options.map((opt) => (
         <button
           key={opt.key}
           type="button"
           onClick={() => onChange(opt.key)}
-          className={`px-3 py-1.5 font-medium transition ${
+          className={`whitespace-nowrap px-4 py-2 font-medium transition ${
             value === opt.key
               ? 'bg-brand-600 text-white'
               : 'text-black/70 hover:bg-black/5'

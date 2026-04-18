@@ -149,7 +149,7 @@ function ReportPageInner() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Report trash</h1>
         <Link href="/" className="text-sm text-brand-700 hover:underline">
@@ -163,7 +163,7 @@ function ReportPageInner() {
           <p className="text-xs opacity-60">
             Drag the pin to adjust. Default is your current location.
           </p>
-          <div className="h-64 overflow-hidden rounded-lg border border-black/10">
+          <div className="h-56 overflow-hidden rounded-lg border border-black/10 sm:h-72">
             <MapGL
               reuseMaps
               longitude={lng}
@@ -250,13 +250,13 @@ function ReportPageInner() {
             control={control}
             name="difficulty"
             render={({ field: { value, onChange } }) => (
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 {([1, 2, 3, 4, 5] as const).map((n) => (
                   <button
                     key={n}
                     type="button"
                     onClick={() => onChange(n)}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                    className={`flex-1 rounded-lg border px-2 py-2.5 text-sm font-medium transition sm:px-3 ${
                       value === n
                         ? 'border-brand-600 bg-brand-500/10 text-brand-700'
                         : 'border-black/10 bg-white hover:border-black/20'

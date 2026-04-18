@@ -54,6 +54,10 @@ See `.env.example`. A single `.env.local` at the repo root covers the app. Clien
 - React 19 is pinned via npm `overrides` — don't downgrade `@types/react`.
 - Generated Supabase types live in `packages/types/src/database.generated.ts` — regenerate after schema changes rather than editing by hand.
 
+### Deployment (Vercel)
+
+Hosted on Vercel. Claude has the Vercel plugin loaded, exposing skills for deployments (`vercel:deploy`, `vercel:deployments-cicd`), env management (`vercel:env`, `vercel:env-vars`), status (`vercel:status`), Next.js/App Router guidance (`vercel:nextjs`), and bootstrap (`vercel:bootstrap`). Prefer these over ad-hoc commands when working on deploy/env/CI tasks. The Vercel CLI isn't installed globally yet — install with `npm i -g vercel` to enable `vercel env pull`, `vercel deploy`, and `vercel logs`.
+
 ### Supabase migration rules (read before touching `supabase/`)
 
 `supabase db push` has been failing because migrations get written that conflict with remote state, forcing manual fixes in the SQL editor — which then creates drift. Follow these rules to prevent that:

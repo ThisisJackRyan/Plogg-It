@@ -10,7 +10,7 @@ import { HotspotInsert } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MapGL, { Marker, NavigationControl, type MarkerDragEvent } from 'react-map-gl';
 import { Button, FieldError, Input } from '@/components/ui';
@@ -21,6 +21,14 @@ import { useRouteSession } from '@/components/route-session-context';
 type FormValues = Pick<HotspotInsert, 'description' | 'difficulty' | 'lat' | 'lng'>;
 
 export default function ReportPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReportPageInner />
+    </Suspense>
+  );
+}
+
+function ReportPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const routeId = searchParams.get('routeId');

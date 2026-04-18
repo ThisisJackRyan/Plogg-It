@@ -80,6 +80,11 @@ export function PloggMap() {
         (pos) => {
           setLocationStatus('granted');
           setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
+          setInitialView({
+            longitude: pos.coords.longitude,
+            latitude: pos.coords.latitude,
+            zoom: 14,
+          });
           mapRef.current?.flyTo({
             center: [pos.coords.longitude, pos.coords.latitude],
             zoom: 14,
@@ -98,7 +103,16 @@ export function PloggMap() {
       (pos) => {
         const rawPoint = { lng: pos.coords.longitude, lat: pos.coords.latitude };
         setUserLocation(rawPoint);
-        setLocationStatus('granted');
+        setLocationStatus((prev) => {
+          if (prev !== 'granted') {
+            setInitialView({
+              longitude: pos.coords.longitude,
+              latitude: pos.coords.latitude,
+              zoom: 14,
+            });
+          }
+          return 'granted';
+        });
         if (routeSession.isActive && routeSession.routeId) {
           const smoothed = routeSession.addWaypoint({
             lat: pos.coords.latitude,
@@ -199,6 +213,11 @@ export function PloggMap() {
         setLocationStatus('granted');
         setPromptDismissed(true);
         setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
+        setInitialView({
+          longitude: pos.coords.longitude,
+          latitude: pos.coords.latitude,
+          zoom: 14,
+        });
         mapRef.current?.flyTo({
           center: [pos.coords.longitude, pos.coords.latitude],
           zoom: 14,

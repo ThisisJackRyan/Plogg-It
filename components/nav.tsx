@@ -12,6 +12,8 @@ export async function TopNav() {
     getSupabaseServer(),
   ]);
 
+  if (!user) return null;
+
   let profileHref = '/me';
   if (userId && supabase) {
     const profile = await getProfileById(supabase, userId);

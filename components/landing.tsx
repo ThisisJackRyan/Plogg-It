@@ -203,24 +203,16 @@ export function LandingPage() {
       <AccentShapes />
       <AmbientBlobs />
 
-      {/* Top nav */}
-      <header className="relative z-10 flex items-center justify-between px-5 py-4 sm:px-10 sm:py-6">
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <span className="text-xl">🌿</span>
-          <span>
-            Plogg<span className="text-brand-600">.</span>Club
-          </span>
-        </Link>
-        <Link
-          href="/sign-in"
-          className="rounded-full bg-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-brand-700/20 transition hover:bg-brand-700/90 active:scale-95"
-        >
-          Sign in
-        </Link>
-      </header>
+      {/* Free-floating sign-in pill */}
+      <Link
+        href="/sign-in"
+        className="absolute right-5 top-5 z-20 rounded-full bg-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-md ring-1 ring-brand-700/20 transition hover:bg-brand-700/90 active:scale-95 sm:right-10 sm:top-8"
+      >
+        Sign in
+      </Link>
 
       {/* Hero */}
-      <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-4 sm:px-10 sm:pb-24 sm:pt-8 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-16 lg:pt-12 xl:gap-24">
+      <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-12 sm:px-10 sm:pb-24 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-16 lg:pt-24 xl:gap-24">
         {/* Copy column */}
         <div className="order-2 text-center lg:order-1 lg:text-left">
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">

@@ -40,3 +40,6 @@ coverage/
 # Supabase
 supabase/.temp/
 supabase/.branches/
+
+# Claude agent scratch (screenshots, notes)
+.context/

@@ -44,6 +44,35 @@ export async function getProfileById(
   return data ? mapProfile(data as ProfileRow) : null;
 }
 
+export async function listProfiles(
+  client: SupabaseClient,
+  opts: { search?: string; excludeUserId?: string | null; limit?: number } = {},
+): Promise<Profile[]> {
+  const c = client as unknown as AnyClient;
+  const limit = opts.limit ?? 50;
+  let q = c
+    .from('profiles')
+    .select(PROFILE_COLUMNS)
+    .not('username', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (opts.excludeUserId) q = q.neq('id', opts.excludeUserId);
+  if (opts.search && opts.search.trim()) {
+    // Escape LIKE wildcards, then escape backslashes and double-quotes so we can
+    // wrap the value in double quotes inside PostgREST's .or() filter — that way
+    // commas, parens, etc. in the term don't break the filter grammar.
+    const term = opts.search
+      .trim()
+      .replace(/[%_]/g, '\\$&')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
+    q = q.or(`username.ilike."%${term}%",display_name.ilike."%${term}%"`);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return ((data ?? []) as ProfileRow[]).map(mapProfile);
+}
+
 export async function getProfileByUsername(
   client: SupabaseClient,
   username: string,

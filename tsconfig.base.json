@@ -17,5 +17,5 @@
     "sourceMap": true,
     "incremental": true
   },
-  "exclude": ["node_modules", "dist", ".next", ".expo", ".turbo"]
+  "exclude": ["node_modules", "dist", ".next", ".turbo"]
 }

@@ -1,14 +1,15 @@
 # Dependencies
 node_modules/
-.pnpm-store/
 
 # Build outputs
 dist/
 build/
 .next/
 .turbo/
-.expo/
 out/
+
+# Clerk configuration (can include secrets)
+/.clerk/
 
 # Env
 .env
@@ -19,7 +20,6 @@ out/
 # Logs
 *.log
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
@@ -37,17 +37,6 @@ yarn-error.log*
 coverage/
 .nyc_output/
 
-# Expo
-*.orig.*
-web-build/
-.expo-shared/
-
 # Supabase
 supabase/.temp/
 supabase/.branches/
-
-# Native
-ios/Pods/
-android/.gradle/
-android/build/
-android/app/build/

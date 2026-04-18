@@ -5,10 +5,15 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useUser } from '@clerk/nextjs';
 import { PHOTO_TARGETS } from '@plogg/core';
-import { insertHotspot, linkHotspotToRoute, uploadHotspotPhoto } from '@plogg/supabase';
+import {
+  cleanupHotspot,
+  insertHotspot,
+  linkHotspotToRoute,
+  uploadHotspotPhoto,
+} from '@plogg/supabase';
 import { HotspotInsert } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
-import { Camera } from 'lucide-react';
+import { Camera, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -39,9 +44,26 @@ function ReportPageInner() {
   const routeSession = useRouteSession();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [alreadyCleaned, setAlreadyCleaned] = useState(false);
+  const [cleanupPhotoFile, setCleanupPhotoFile] = useState<File | null>(null);
+  const [cleanupPhotoPreview, setCleanupPhotoPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cleanupFileInputRef = useRef<HTMLInputElement>(null);
+
+  const compressPhoto = useCallback(async (file: File) => {
+    const compressed = await imageCompression(file, {
+      maxSizeMB: PHOTO_TARGETS.maxSizeKb / 1024,
+      maxWidthOrHeight: PHOTO_TARGETS.maxDimensionPx,
+      initialQuality: PHOTO_TARGETS.jpegQuality,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+    });
+    return compressed instanceof File
+      ? compressed
+      : new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
+  }, []);
 
   const {
     control,
@@ -79,24 +101,22 @@ function ReportPageInner() {
     async (evt: React.ChangeEvent<HTMLInputElement>) => {
       const file = evt.target.files?.[0];
       if (!file) return;
-
-      // Compress client-side before preview to match what we'll upload.
-      const compressed = await imageCompression(file, {
-        maxSizeMB: PHOTO_TARGETS.maxSizeKb / 1024,
-        maxWidthOrHeight: PHOTO_TARGETS.maxDimensionPx,
-        initialQuality: PHOTO_TARGETS.jpegQuality,
-        useWebWorker: true,
-        fileType: 'image/jpeg',
-      });
-      const compressedFile =
-        compressed instanceof File
-          ? compressed
-          : new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
-
+      const compressedFile = await compressPhoto(file);
       setPhotoFile(compressedFile);
       setPhotoPreview(URL.createObjectURL(compressedFile));
     },
-    [],
+    [compressPhoto],
+  );
+
+  const onCleanupPhotoPicked = useCallback(
+    async (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const file = evt.target.files?.[0];
+      if (!file) return;
+      const compressedFile = await compressPhoto(file);
+      setCleanupPhotoFile(compressedFile);
+      setCleanupPhotoPreview(URL.createObjectURL(compressedFile));
+    },
+    [compressPhoto],
   );
 
   const onDragEnd = useCallback(
@@ -113,9 +133,18 @@ function ReportPageInner() {
       setSubmitError('Please add a photo of the trash.');
       return;
     }
+    if (alreadyCleaned && !cleanupPhotoFile) {
+      setSubmitError('Please add a cleanup proof photo.');
+      return;
+    }
     setSubmitting(true);
     try {
       if (!user) throw new Error('Not signed in.');
+
+      const displayName =
+        user.fullName ??
+        user.primaryEmailAddress?.emailAddress?.split('@')[0] ??
+        null;
 
       const photoUrl = await uploadHotspotPhoto(supabase, photoFile, {
         userId: user.id,
@@ -126,14 +155,21 @@ function ReportPageInner() {
       const newHotspot = await insertHotspot(
         supabase,
         { ...values, photoUrl },
-        {
-          userId: user.id,
-          displayName:
-            user.fullName ??
-            user.primaryEmailAddress?.emailAddress?.split('@')[0] ??
-            null,
-        },
+        { userId: user.id, displayName },
       );
+
+      if (alreadyCleaned && cleanupPhotoFile) {
+        const cleanupPhotoUrl = await uploadHotspotPhoto(supabase, cleanupPhotoFile, {
+          userId: user.id,
+          extension: 'jpg',
+          contentType: 'image/jpeg',
+        });
+        await cleanupHotspot(supabase, {
+          hotspotId: newHotspot.id,
+          cleanupPhotoUrl,
+          cleanerDisplayName: displayName,
+        });
+      }
 
       if (routeId) {
         await linkHotspotToRoute(supabase, routeId, newHotspot.id);
@@ -292,10 +328,79 @@ function ReportPageInner() {
           </p>
         </section>
 
+        <section className="space-y-3 rounded-lg border border-black/10 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={alreadyCleaned}
+              onChange={(e) => setAlreadyCleaned(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span
+              aria-hidden
+              className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-black/25 bg-white text-white transition peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500/40"
+            >
+              {alreadyCleaned ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+            </span>
+            <span>
+              <span className="font-medium">I already cleaned it up</span>
+              <span className="block text-xs opacity-60">
+                Mark this pin as cleaned right now with a proof photo.
+              </span>
+            </span>
+          </label>
+
+          {alreadyCleaned ? (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cleanup proof photo</label>
+              <input
+                ref={cleanupFileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onCleanupPhotoPicked}
+                className="hidden"
+              />
+              {cleanupPhotoPreview ? (
+                <button
+                  type="button"
+                  onClick={() => cleanupFileInputRef.current?.click()}
+                  className="relative block aspect-video w-full overflow-hidden rounded-lg border border-black/10"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={cleanupPhotoPreview}
+                    alt="Cleanup preview"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+                    Replace
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => cleanupFileInputRef.current?.click()}
+                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-black/20 text-sm opacity-70 hover:bg-black/2"
+                >
+                  <Camera aria-hidden className="h-7 w-7 text-black/60" />
+                  <span>Tap to take or choose a photo</span>
+                </button>
+              )}
+            </div>
+          ) : null}
+        </section>
+
         {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? 'Reporting…' : 'Report trash'}
+          {submitting
+            ? alreadyCleaned
+              ? 'Submitting…'
+              : 'Reporting…'
+            : alreadyCleaned
+              ? 'Report & mark cleaned'
+              : 'Report trash'}
         </Button>
       </form>
     </main>

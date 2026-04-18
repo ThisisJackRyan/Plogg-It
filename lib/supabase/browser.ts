@@ -20,7 +20,10 @@ export function useSupabaseBrowser(): SupabaseClient {
       createPloggClient({
         url: env.SUPABASE_URL,
         anonKey: env.SUPABASE_ANON_KEY,
-        accessToken: async () => (await getToken()) ?? null,
+        accessToken: async () => {
+          if (typeof getToken !== 'function') return null;
+          return (await getToken()) ?? null;
+        },
       }),
     [getToken],
   );

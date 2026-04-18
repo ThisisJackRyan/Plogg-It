@@ -1,0 +1,33 @@
+{
+  "name": "@plogg/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed Supabase client factory, query functions, and TanStack Query hooks for Plogg It.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./queries": "./src/queries/index.ts",
+    "./hooks": "./src/hooks/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@plogg/core": "workspace:*",
+    "@plogg/types": "workspace:*",
+    "@supabase/supabase-js": "^2.47.10",
+    "@tanstack/react-query": "^5.62.11"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@plogg/config": "workspace:*",
+    "@types/react": "^19.0.2",
+    "react": "^19.0.0",
+    "typescript": "^5.7.2"
+  }
+}

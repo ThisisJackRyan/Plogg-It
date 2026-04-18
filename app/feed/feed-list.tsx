@@ -5,6 +5,7 @@ import { useFeed } from '@plogg/supabase';
 import Link from 'next/link';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 import { FeedCard } from '@/components/feed-card';
+import { StaggerList, StaggerItem } from '@/components/motion';
 
 export function FeedList() {
   const supabase = useSupabaseBrowser();
@@ -37,13 +38,13 @@ export function FeedList() {
 
   return (
     <div className="space-y-4">
-      {events.map((evt) => (
-        <FeedCard
-          key={`${evt.hotspotId}-${evt.eventType}`}
-          event={evt}
-          viewerId={user?.id ?? null}
-        />
-      ))}
+      <StaggerList className="space-y-4">
+        {events.map((evt) => (
+          <StaggerItem key={`${evt.hotspotId}-${evt.eventType}`}>
+            <FeedCard event={evt} viewerId={user?.id ?? null} />
+          </StaggerItem>
+        ))}
+      </StaggerList>
       {hasNextPage ? (
         <button
           type="button"

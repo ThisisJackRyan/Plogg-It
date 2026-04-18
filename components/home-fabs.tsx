@@ -28,7 +28,7 @@ export function HomeFabs() {
 
   if (routeSession.isActive) {
     return (
-      <div className="absolute bottom-0 left-0 right-0 z-10 rounded-t-2xl bg-white/95 px-6 py-4 shadow-xl backdrop-blur-sm">
+      <div className="animate-rise-in absolute bottom-0 left-0 right-0 z-10 rounded-t-2xl bg-white/95 px-6 py-4 shadow-xl backdrop-blur-sm">
         <RouteStats />
         <div className="mt-4 flex gap-3">
           <Link
@@ -51,18 +51,18 @@ export function HomeFabs() {
   }
 
   return (
-    <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 flex gap-3 items-center">
+    <div className="animate-rise-in absolute bottom-6 left-4 right-4 z-10 flex flex-wrap items-center justify-center gap-3">
       <button
         type="button"
         onClick={handleStartRoute}
         disabled={startRouteMutation.isPending}
-        className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-brand-700 shadow-lg ring-1 ring-brand-600/30 hover:bg-brand-50 active:scale-95 transition disabled:opacity-50"
+        className="whitespace-nowrap rounded-full bg-white px-5 py-3 text-sm font-semibold text-brand-700 shadow-lg ring-1 ring-brand-600/30 transition hover:bg-brand-50 active:scale-95 disabled:opacity-50"
       >
         {startRouteMutation.isPending ? 'Starting…' : 'Start Route'}
       </button>
       <Link
         href="/report"
-        className="rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-brand-700"
+        className="whitespace-nowrap rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-700 active:scale-95"
       >
         + Report trash
       </Link>

@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { getProfileByUsername, getProfileStats, getUserStats } from '@plogg/supabase';
 import { notFound } from 'next/navigation';
-import { TopNav } from '@/components/nav';
+import { PageTransition, StaggerList, StaggerItem } from '@/components/motion';
 import { FollowButton } from './follow-button';
 import { getSupabaseServer } from '@/lib/supabase/server';
 
@@ -26,9 +26,8 @@ export default async function ProfilePage({
   const isSelf = userId === profile.id;
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <TopNav active={isSelf ? 'profile' : undefined} />
-      <div className="mx-auto max-w-xl space-y-6 px-4 py-6">
+    <main className="flex-1 bg-neutral-50">
+      <PageTransition className="mx-auto max-w-xl space-y-6 px-4 py-6">
         <header className="flex flex-wrap items-start gap-3 sm:gap-4">
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -61,16 +60,16 @@ export default async function ProfilePage({
           ) : null}
         </header>
 
-  <section className="grid grid-cols-2 gap-2 rounded-xl bg-white p-4 text-center text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-4">
-          <Stat label="Total Points" value={userStats?.total_points ?? 0} />
-          <Stat label="Current Streak" value={userStats?.current_streak ?? 0} icon="🔥" />
-          <Stat label="Longest Streak" value={userStats?.longest_streak ?? 0} />
-          <Stat label="Followers" value={stats.followersCount} href={`/u/${username}/followers`} />
-          <Stat label="Following" value={stats.followingCount} href={`/u/${username}/following`} />
-          <Stat label="Reports" value={stats.reportsCount} />
-          <Stat label="Cleaned" value={stats.cleanupsCount} />
-        </section>
-      </div>
+        <StaggerList className="grid grid-cols-2 gap-2 rounded-xl bg-white p-4 text-center text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-4">
+          <StaggerItem><Stat label="Total Points" value={userStats?.total_points ?? 0} /></StaggerItem>
+          <StaggerItem><Stat label="Current Streak" value={userStats?.current_streak ?? 0} /></StaggerItem>
+          <StaggerItem><Stat label="Longest Streak" value={userStats?.longest_streak ?? 0} /></StaggerItem>
+          <StaggerItem><Stat label="Followers" value={stats.followersCount} href={`/u/${username}/followers`} /></StaggerItem>
+          <StaggerItem><Stat label="Following" value={stats.followingCount} href={`/u/${username}/following`} /></StaggerItem>
+          <StaggerItem><Stat label="Reports" value={stats.reportsCount} /></StaggerItem>
+          <StaggerItem><Stat label="Cleaned" value={stats.cleanupsCount} /></StaggerItem>
+        </StaggerList>
+      </PageTransition>
     </main>
   );
 }

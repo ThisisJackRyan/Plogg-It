@@ -9,8 +9,9 @@ import { Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui';
+import { CleanupCelebration } from '@/components/cleanup-celebration';
+import { PageTransition } from '@/components/motion';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 
 export default function CleanupPage() {
@@ -25,6 +26,11 @@ export default function CleanupPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [celebration, setCelebration] = useState<{
+    open: boolean;
+    pointsEarned: number;
+    totalPoints: number | null;
+  }>({ open: false, pointsEarned: 0, totalPoints: null });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -88,24 +94,29 @@ export default function CleanupPage() {
           null,
       });
 
-      const { data: ledgerRow } = await supabase
-        .from('point_ledger')
-        .select('id, amount')
-        .eq('user_id', user.id)
-        .eq('reason', 'hotspot_cleaned')
-        .eq('reference_id', params.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [{ data: ledgerRow }, { data: statsRow }] = await Promise.all([
+        supabase
+          .from('point_ledger')
+          .select('id, amount')
+          .eq('user_id', user.id)
+          .eq('reason', 'hotspot_cleaned')
+          .eq('reference_id', params.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('user_stats')
+          .select('total_points')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
 
       const awardedPoints = ledgerRow?.amount ?? 20;
-      toast.success('Cleanup Complete! 🏆', {
-        id: ledgerRow?.id ? `point-ledger-${ledgerRow.id}` : undefined,
-        description: `You earned ${awardedPoints} points for making the world cleaner.`,
+      setCelebration({
+        open: true,
+        pointsEarned: awardedPoints,
+        totalPoints: statsRow?.total_points ?? null,
       });
-
-      router.replace('/');
-      router.refresh();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -114,7 +125,8 @@ export default function CleanupPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
+    <main>
+    <PageTransition className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Mark as cleaned</h1>
         <Link href="/" className="text-sm text-brand-700 hover:underline">
@@ -180,6 +192,17 @@ export default function CleanupPage() {
       >
         {submitting ? 'Submitting…' : 'Mark cleaned'}
       </Button>
+
+      <CleanupCelebration
+        open={celebration.open}
+        pointsEarned={celebration.pointsEarned}
+        totalPoints={celebration.totalPoints}
+        onContinue={() => {
+          router.replace('/');
+          router.refresh();
+        }}
+      />
+    </PageTransition>
     </main>
   );
 }

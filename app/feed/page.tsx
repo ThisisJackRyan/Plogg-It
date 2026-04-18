@@ -1,13 +1,12 @@
-import { TopNav } from '@/components/nav';
+import { PageTransition } from '@/components/motion';
 import { FeedList } from './feed-list';
 
 export default function FeedPage() {
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <TopNav active="feed" />
-      <div className="mx-auto max-w-xl px-4 py-4">
+    <main className="flex-1 bg-neutral-50">
+      <PageTransition className="mx-auto max-w-xl px-4 py-4">
         <FeedList />
-      </div>
+      </PageTransition>
     </main>
   );
 }

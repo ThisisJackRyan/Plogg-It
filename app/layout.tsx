@@ -2,6 +2,8 @@ import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from '@/components/providers';
 import { clerkAppearance } from '@/lib/clerk-appearance';
+import { NavShell } from '@/components/nav-shell';
+import { TopNav } from '@/components/nav';
 import { Toaster } from 'sonner';
 import './globals.css';
 
@@ -22,6 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <html lang="en" suppressHydrationWarning>
         <body suppressHydrationWarning>
           <Providers>
+            <NavShell>
+              <TopNav />
+            </NavShell>
             {children}
             <Toaster position="top-center" richColors />
           </Providers>

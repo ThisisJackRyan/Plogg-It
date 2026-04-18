@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Profile } from '@plogg/types';
+import { StaggerList, StaggerItem } from '@/components/motion';
 
 export function PeopleBrowser() {
   const supabase = useSupabaseBrowser();
@@ -46,11 +47,13 @@ export function PeopleBrowser() {
           {search ? 'No ploggers match that search.' : 'No other ploggers yet.'}
         </p>
       ) : (
-        <ul className="divide-y divide-black/5 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
+        <StaggerList className="divide-y divide-black/5 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
           {profiles.map((p) => (
-            <PersonRow key={p.id} profile={p} viewerId={viewerId} />
+            <StaggerItem key={p.id}>
+              <PersonRow profile={p} viewerId={viewerId} />
+            </StaggerItem>
           ))}
-        </ul>
+        </StaggerList>
       )}
     </div>
   );
@@ -70,7 +73,7 @@ function PersonRow({ profile, viewerId }: { profile: Profile; viewerId: string |
   };
 
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
+    <div className="flex items-center gap-3 px-4 py-3">
       <Link
         href={profile.username ? `/u/${profile.username}` : '#'}
         className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-80"
@@ -108,6 +111,6 @@ function PersonRow({ profile, viewerId }: { profile: Profile; viewerId: string |
           {following ? 'Following' : 'Follow'}
         </button>
       ) : null}
-    </li>
+    </div>
   );
 }

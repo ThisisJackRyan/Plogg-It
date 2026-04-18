@@ -2,6 +2,7 @@
 
 import { useKudos } from '@plogg/supabase';
 import type { FeedEvent } from '@plogg/types';
+import { Heart, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useOptimistic, useTransition } from 'react';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
@@ -116,14 +117,18 @@ export function FeedCard({
                 : 'bg-black/5 text-black/70 hover:bg-black/10'
             }`}
           >
-            <span aria-hidden>👏</span>
+            <Heart
+              aria-hidden
+              className="h-4 w-4"
+              fill={optimistic.hasKudoed ? 'currentColor' : 'none'}
+            />
             <span>{optimistic.count}</span>
           </button>
           <Link
             href={eventHref(event)}
             className="flex items-center gap-1 rounded-full bg-black/5 px-3 py-1 text-black/70 hover:bg-black/10"
           >
-            <span aria-hidden>💬</span>
+            <MessageCircle aria-hidden className="h-4 w-4" />
             <span>{event.commentCount}</span>
           </Link>
           <Link

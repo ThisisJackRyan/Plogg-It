@@ -4,7 +4,7 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Plogg It',
+  title: 'Plogg Club',
   description: 'Drop a pin on trash. Clean it up. Earn points.',
 };
 

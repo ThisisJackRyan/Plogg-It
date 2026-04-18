@@ -8,7 +8,6 @@ import type { Map as MapboxMap } from 'mapbox-gl';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import MapGL, {
-  GeolocateControl,
   Marker,
   NavigationControl,
   Popup,
@@ -126,12 +125,6 @@ export function PloggMap() {
         style={{ width: '100%', height: '100%' }}
       >
         <NavigationControl position="top-right" />
-        <GeolocateControl
-          position="top-right"
-          trackUserLocation
-          showUserHeading
-          positionOptions={{ enableHighAccuracy: true }}
-        />
 
         {userLocation ? (
           <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">

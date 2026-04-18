@@ -5,7 +5,7 @@ import { TopNav } from '@/components/nav';
 
 export default async function HomePage() {
   return (
-    <main className="flex h-screen w-screen flex-col overflow-hidden">
+    <main className="flex h-[100dvh] w-full flex-col overflow-hidden">
       <TopNav active="map" />
       <div className="relative flex-1">
         <Suspense fallback={null}>

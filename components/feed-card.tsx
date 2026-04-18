@@ -111,7 +111,7 @@ export function FeedCard({
             onClick={onToggleKudos}
             disabled={!viewerId}
             aria-pressed={optimistic.hasKudoed}
-            className={`flex items-center gap-1 rounded-full px-3 py-1 transition ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition ${
               optimistic.hasKudoed
                 ? 'bg-brand-600 text-white'
                 : 'bg-black/5 text-black/70 hover:bg-black/10'
@@ -126,7 +126,7 @@ export function FeedCard({
           </button>
           <Link
             href={eventHref(event)}
-            className="flex items-center gap-1 rounded-full bg-black/5 px-3 py-1 text-black/70 hover:bg-black/10"
+            className="flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1.5 text-black/70 hover:bg-black/10"
           >
             <MessageCircle aria-hidden className="h-4 w-4" />
             <span>{event.commentCount}</span>

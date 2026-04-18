@@ -99,7 +99,7 @@ function PersonRow({ profile, viewerId }: { profile: Profile; viewerId: string |
           type="button"
           onClick={onClick}
           disabled={busy}
-          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+          className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${
             following
               ? 'bg-white text-black ring-1 ring-black/10 hover:bg-black/5'
               : 'bg-brand-600 text-white hover:bg-brand-700'

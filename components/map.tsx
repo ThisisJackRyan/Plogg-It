@@ -3,20 +3,24 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
-import { useHotspotsInBbox } from '@plogg/supabase';
+import type { LngLat } from '@plogg/core';
+import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import MapGL, {
+  Layer,
   Marker,
   NavigationControl,
   Popup,
+  Source,
   type MapLayerMouseEvent,
   type MapRef,
   type ViewStateChangeEvent,
 } from 'react-map-gl';
 import { env } from '@/lib/env';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
+import { useRouteSession } from './route-session-context';
 
 const FALLBACK_VIEW = {
   longitude: -122.4194,
@@ -28,12 +32,19 @@ const CLEANED_COLOR = '#2563eb';
 
 export function PloggMap() {
   const supabase = useSupabaseBrowser();
+  const routeSession = useRouteSession();
+  const insertWaypointsMutation = useInsertWaypoints(supabase);
+
   const mapRef = useRef<MapRef | null>(null);
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
   const [filter, setFilter] = useState<HotspotStatusFilter>('active');
   const [selected, setSelected] = useState<Hotspot | null>(null);
   const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW | null>(null);
-  const [userLocation, setUserLocation] = useState<{ lng: number; lat: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<LngLat | null>(null);
+  const [pathPoints, setPathPoints] = useState<LngLat[]>([]);
+
+  // Buffer of waypoints not yet flushed to the DB.
+  const pendingWaypointsRef = useRef<Array<{ routeId: string; lat: number; lng: number }>>([]);
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -53,12 +64,47 @@ export function PloggMap() {
     );
 
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude }),
+      (pos) => {
+        const point = { lng: pos.coords.longitude, lat: pos.coords.latitude };
+        setUserLocation(point);
+        if (routeSession.isActive && routeSession.routeId) {
+          routeSession.addWaypoint(point, pos.coords.accuracy ?? undefined);
+          pendingWaypointsRef.current.push({ routeId: routeSession.routeId, ...point });
+        }
+      },
       () => {},
       { enableHighAccuracy: true },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSession.isActive, routeSession.routeId]);
+
+  // Flush accumulated waypoints to the DB every 15 seconds while a route is active.
+  useEffect(() => {
+    if (!routeSession.isActive || !routeSession.routeId) return;
+    const interval = setInterval(() => {
+      const batch = pendingWaypointsRef.current.splice(0);
+      if (batch.length === 0) return;
+      insertWaypointsMutation.mutate(
+        batch.map((w) => ({ routeId: w.routeId, lat: w.lat, lng: w.lng })),
+      );
+    }, 15_000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSession.isActive, routeSession.routeId]);
+
+  // Sync the displayed path from the waypoints ref every 5 seconds while active.
+  useEffect(() => {
+    if (!routeSession.isActive) {
+      setPathPoints([]);
+      return;
+    }
+    const interval = setInterval(() => {
+      setPathPoints(routeSession.getWaypoints());
+    }, 5_000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSession.isActive]);
 
   const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox, filter);
 
@@ -163,6 +209,28 @@ export function PloggMap() {
             <HotspotCard hotspot={selected} />
           </Popup>
         ) : null}
+
+        {pathPoints.length >= 2 ? (
+          <Source
+            id="route-path"
+            type="geojson"
+            data={{
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: pathPoints.map((p) => [p.lng, p.lat]),
+              },
+              properties: {},
+            }}
+          >
+            <Layer
+              id="route-path-line"
+              type="line"
+              paint={{ 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.85 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            />
+          </Source>
+        ) : null}
       </MapGL>
 
       <FilterPills value={filter} onChange={setFilter} />
@@ -171,7 +239,7 @@ export function PloggMap() {
         type="button"
         onClick={recenterOnUser}
         aria-label="Recenter on my location"
-        className="absolute bottom-6 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/10 transition hover:bg-neutral-50 active:scale-95"
+        className={`absolute right-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/10 transition hover:bg-neutral-50 active:scale-95 ${routeSession.isActive ? 'bottom-48' : 'bottom-6'}`}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
           <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A9.002 9.002 0 0 0 13 3.06V1h-2v2.06A9.002 9.002 0 0 0 3.06 11H1v2h2.06A9.002 9.002 0 0 0 11 20.94V23h2v-2.06A9.002 9.002 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z" />

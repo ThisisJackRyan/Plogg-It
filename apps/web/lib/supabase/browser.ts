@@ -1,16 +1,27 @@
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@plogg/types';
+'use client';
+
+import { useAuth } from '@clerk/nextjs';
+import { createPloggClient, type SupabaseClient } from '@plogg/supabase';
+import { useMemo } from 'react';
 import { env } from '../env';
 
 /**
- * Singleton browser Supabase client. Cookies are managed by `@supabase/ssr`
- * so the session is shared with the server client.
+ * Browser Supabase client bound to the current Clerk session. Every request
+ * pulls a fresh Clerk JWT via `getToken()`; Supabase verifies it through the
+ * Third-Party Auth integration.
+ *
+ * Must be called inside a component tree wrapped by `<ClerkProvider>`.
  */
-let client: ReturnType<typeof createBrowserClient<Database>> | undefined;
+export function useSupabaseBrowser(): SupabaseClient {
+  const { getToken } = useAuth();
 
-export function getSupabaseBrowser() {
-  if (!client) {
-    client = createBrowserClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-  }
-  return client;
+  return useMemo(
+    () =>
+      createPloggClient({
+        url: env.SUPABASE_URL,
+        anonKey: env.SUPABASE_ANON_KEY,
+        accessToken: async () => (await getToken()) ?? null,
+      }),
+    [getToken],
+  );
 }

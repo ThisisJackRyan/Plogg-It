@@ -1,18 +1,12 @@
+import { UserButton } from '@clerk/nextjs';
+import { currentUser } from '@clerk/nextjs/server';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getSupabaseServer } from '@/lib/supabase/server';
 import { PloggMap } from '@/components/map';
-import { SignOutButton } from '@/components/sign-out-button';
 
 export default async function HomePage() {
-  const supabase = await getSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
+  // Middleware guards this route, so `currentUser()` always resolves.
+  const user = await currentUser();
+  const email = user?.primaryEmailAddress?.emailAddress ?? '';
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
@@ -23,8 +17,8 @@ export default async function HomePage() {
           Plogg It
         </div>
         <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/90 px-2 py-1 shadow">
-          <span className="px-2 text-xs opacity-70">{user.email}</span>
-          <SignOutButton />
+          {email ? <span className="px-2 text-xs opacity-70">{email}</span> : null}
+          <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </div>
 

@@ -3,9 +3,9 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import type { BoundingBox, Hotspot } from '@plogg/types';
-import { useHotspotsInBbox, type SupabaseClient } from '@plogg/supabase';
+import { useHotspotsInBbox } from '@plogg/supabase';
 import type { Map as MapboxMap } from 'mapbox-gl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import MapGL, {
   GeolocateControl,
   Marker,
@@ -15,7 +15,7 @@ import MapGL, {
   type ViewStateChangeEvent,
 } from 'react-map-gl';
 import { env } from '@/lib/env';
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { useSupabaseBrowser } from '@/lib/supabase/browser';
 
 const INITIAL_VIEW = {
   longitude: -122.4194,
@@ -24,10 +24,7 @@ const INITIAL_VIEW = {
 };
 
 export function PloggMap() {
-  const supabase = useMemo(
-    () => getSupabaseBrowser() as unknown as SupabaseClient,
-    [],
-  );
+  const supabase = useSupabaseBrowser();
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
   const [selected, setSelected] = useState<Hotspot | null>(null);
 

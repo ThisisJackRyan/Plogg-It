@@ -11,4 +11,8 @@ export const env = {
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   ),
   MAPBOX_TOKEN: required('EXPO_PUBLIC_MAPBOX_TOKEN', process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+  CLERK_PUBLISHABLE_KEY: required(
+    'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  ),
 } as const;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const Profile = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   displayName: z.string().nullable(),
   avatarUrl: z.string().url().nullable(),
   createdAt: z.string(),

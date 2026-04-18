@@ -36,33 +36,28 @@ export async function getHotspot(
   return mapViewRowToHotspot(data);
 }
 
+export interface InsertHotspotCaller {
+  userId: string;
+  displayName?: string | null;
+}
+
 /**
- * Insert a new hotspot. Caller must be signed in.
- * PostGIS location is built from lng/lat via the SRID-tagged WKT literal.
- * Returns the inserted row directly — we don't round-trip through the view
- * because the reporter display name can be joined later by the map query.
+ * Insert a new hotspot. Caller identity is the Clerk user id (passed in
+ * explicitly since Supabase-side `auth.getUser()` isn't available under
+ * third-party auth). A profile row is upserted defensively so the FK from
+ * hotspots.reported_by resolves on first-ever post.
  */
 export async function insertHotspot(
   client: SupabaseClient,
   input: HotspotInsert,
+  caller: InsertHotspotCaller,
 ): Promise<Hotspot> {
-  const { data: userData, error: userErr } = await client.auth.getUser();
-  if (userErr) throw userErr;
-  const user = userData.user;
-  if (!user) throw new Error('Must be signed in to insert a hotspot.');
-  const userId = user.id;
+  const { userId, displayName } = caller;
 
-  // Defense in depth: ensure a profile row exists before inserting a hotspot,
-  // since hotspots.reported_by has a FK to profiles.id. The trigger on
-  // auth.users normally handles this, but we upsert here to survive any case
-  // where it didn't fire.
   const { error: profileError } = await client
     .from('profiles')
     .upsert(
-      {
-        id: userId,
-        display_name: user.email ? user.email.split('@')[0] : null,
-      },
+      { id: userId, display_name: displayName ?? null },
       { onConflict: 'id', ignoreDuplicates: true },
     );
   if (profileError) throw profileError;
@@ -84,7 +79,7 @@ export async function insertHotspot(
   return {
     id: data.id,
     reportedBy: userId,
-    reporterDisplayName: null,
+    reporterDisplayName: displayName ?? null,
     description: data.description ?? input.description,
     difficulty: data.difficulty ?? input.difficulty,
     photoUrl: data.photo_url ?? input.photoUrl,

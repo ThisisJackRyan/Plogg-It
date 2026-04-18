@@ -14,11 +14,8 @@ export default function RootLayout() {
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="login" options={{ title: 'Sign in' }} />
-        <Stack.Screen name="signup" options={{ title: 'Sign up' }} />
-        <Stack.Screen name="forgot-password" options={{ title: 'Reset password' }} />
-        <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
-        <Stack.Screen name="auth-callback" options={{ title: 'Signing in…' }} />
+        <Stack.Screen name="sign-in" options={{ title: 'Sign in' }} />
+        <Stack.Screen name="sign-up" options={{ title: 'Sign up' }} />
       </Stack>
     </Providers>
   );

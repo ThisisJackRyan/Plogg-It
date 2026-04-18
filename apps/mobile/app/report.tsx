@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useUser } from '@clerk/clerk-expo';
 import { PHOTO_TARGETS } from '@plogg/core';
-import { insertHotspot, uploadHotspotPhoto, type SupabaseClient } from '@plogg/supabase';
+import { insertHotspot, uploadHotspotPhoto } from '@plogg/supabase';
 import { HotspotInsert } from '@plogg/types';
 import Mapbox, { Camera, MapView, PointAnnotation } from '@rnmapbox/maps';
 import { Link, router } from 'expo-router';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   ActivityIndicator,
@@ -24,12 +25,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, FieldError } from '../components/ui';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../lib/supabase';
 
 type FormValues = Pick<HotspotInsert, 'description' | 'difficulty' | 'lat' | 'lng'>;
 
 export default function ReportScreen() {
-  const client = useMemo(() => supabase as unknown as SupabaseClient, []);
+  const client = useSupabase();
+  const { user } = useUser();
   const cameraRef = useRef<Camera | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -112,9 +114,6 @@ export default function ReportScreen() {
     }
     setSubmitting(true);
     try {
-      const {
-        data: { user },
-      } = await client.auth.getUser();
       if (!user) throw new Error('Not signed in.');
 
       // RN-safe upload: fetch the local uri into a Blob, then upload.
@@ -127,10 +126,17 @@ export default function ReportScreen() {
         contentType: 'image/jpeg',
       });
 
-      await insertHotspot(client, {
-        ...values,
-        photoUrl,
-      });
+      await insertHotspot(
+        client,
+        { ...values, photoUrl },
+        {
+          userId: user.id,
+          displayName:
+            user.fullName ??
+            user.primaryEmailAddress?.emailAddress?.split('@')[0] ??
+            null,
+        },
+      );
 
       router.replace('/');
     } catch (err) {

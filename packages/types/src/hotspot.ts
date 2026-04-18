@@ -16,7 +16,7 @@ export type HotspotInsert = z.infer<typeof HotspotInsert>;
 
 export const Hotspot = z.object({
   id: z.string().uuid(),
-  reportedBy: z.string().uuid(),
+  reportedBy: z.string().min(1),
   reporterDisplayName: z.string().nullable(),
   description: z.string(),
   difficulty: Difficulty,

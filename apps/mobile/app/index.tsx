@@ -1,15 +1,16 @@
+import { useAuth, useClerk, useUser } from '@clerk/clerk-expo';
 import { Link, Redirect } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/ui';
-import { useAuth } from '../components/AuthProvider';
 import { PloggMap } from '../components/Map';
-import { supabase } from '../lib/supabase';
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const clerk = useClerk();
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator />
@@ -17,9 +18,11 @@ export default function Home() {
     );
   }
 
-  if (!user) {
-    return <Redirect href="/login" />;
+  if (!isSignedIn) {
+    return <Redirect href="/sign-in" />;
   }
+
+  const email = user?.primaryEmailAddress?.emailAddress ?? '';
 
   return (
     <View style={styles.root}>
@@ -29,8 +32,8 @@ export default function Home() {
           <Text style={styles.chipText}>Plogg It</Text>
         </View>
         <View style={styles.chip}>
-          <Text style={styles.chipTextMuted}>{user.email}</Text>
-          <Button label="Sign out" variant="ghost" onPress={() => supabase.auth.signOut()} />
+          {email ? <Text style={styles.chipTextMuted}>{email}</Text> : null}
+          <Button label="Sign out" variant="ghost" onPress={() => clerk.signOut()} />
         </View>
       </SafeAreaView>
       <SafeAreaView edges={['bottom']} style={styles.bottomBar} pointerEvents="box-none">

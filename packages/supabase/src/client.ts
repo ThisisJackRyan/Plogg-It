@@ -7,34 +7,19 @@ export interface SupabaseClientOptions {
   url: string;
   anonKey: string;
   /**
-   * Platform-specific storage adapter used to persist the auth session.
-   * - Web: leave undefined (uses `localStorage`) or pass a cookie adapter for SSR.
-   * - React Native: pass `expo-secure-store` or `AsyncStorage` adapter.
+   * Returns a Clerk-issued JWT (or null when signed out). When provided,
+   * supabase-js injects it as the Authorization header on every request and
+   * skips its own session management — this is Supabase's Third-Party Auth
+   * contract with Clerk.
    */
-  storage?: {
-    getItem(key: string): Promise<string | null> | string | null;
-    setItem(key: string, value: string): Promise<void> | void;
-    removeItem(key: string): Promise<void> | void;
-  };
-  /**
-   * Whether the client should auto-refresh tokens. Default: true.
-   * Set false in server-side contexts where the token is passed explicitly.
-   */
-  autoRefreshToken?: boolean;
-  detectSessionInUrl?: boolean;
+  accessToken?: () => Promise<string | null>;
 }
 
 export function createPloggClient(opts: SupabaseClientOptions): SupabaseClient {
-  const { url, anonKey, storage, autoRefreshToken = true, detectSessionInUrl = true } = opts;
+  const { url, anonKey, accessToken } = opts;
 
   return createClient<Database>(url, anonKey, {
-    auth: {
-      ...(storage ? { storage } : {}),
-      autoRefreshToken,
-      persistSession: true,
-      detectSessionInUrl,
-      flowType: 'pkce',
-    },
+    ...(accessToken ? { accessToken } : {}),
     global: {
       headers: { 'x-plogg-client': 'shared' },
     },

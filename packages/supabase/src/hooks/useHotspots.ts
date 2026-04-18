@@ -7,7 +7,12 @@ import {
 } from '@tanstack/react-query';
 import type { BoundingBox, Hotspot, HotspotInsert } from '@plogg/types';
 import type { SupabaseClient } from '../client';
-import { getHotspot, insertHotspot, listHotspotsInBbox } from '../queries/hotspots';
+import {
+  getHotspot,
+  insertHotspot,
+  listHotspotsInBbox,
+  type InsertHotspotCaller,
+} from '../queries/hotspots';
 
 const HOTSPOTS_KEY = ['hotspots'] as const;
 
@@ -36,10 +41,11 @@ export function useHotspot(
 
 export function useInsertHotspot(
   client: SupabaseClient,
+  caller: InsertHotspotCaller,
 ): UseMutationResult<Hotspot, Error, HotspotInsert> {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: HotspotInsert) => insertHotspot(client, input),
+    mutationFn: (input: HotspotInsert) => insertHotspot(client, input, caller),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: HOTSPOTS_KEY });
     },

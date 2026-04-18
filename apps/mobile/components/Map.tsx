@@ -1,15 +1,15 @@
 import Mapbox, { Camera, MapView, MarkerView, PointAnnotation, UserLocation } from '@rnmapbox/maps';
 import type { BoundingBox, Hotspot } from '@plogg/types';
-import { useHotspotsInBbox, type SupabaseClient } from '@plogg/supabase';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useHotspotsInBbox } from '@plogg/supabase';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../lib/supabase';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749];
 
 export function PloggMap() {
-  const client = useMemo(() => supabase as unknown as SupabaseClient, []);
+  const client = useSupabase();
   const cameraRef = useRef<Camera | null>(null);
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
   const [selected, setSelected] = useState<Hotspot | null>(null);

@@ -49,6 +49,7 @@ See `.env.example`. A single `.env.local` at the repo root covers the app. Clien
 
 ### Conventions
 
+- **Always run `npm run lint` before finishing any code change and fix all warnings/errors before reporting the task complete.**
 - Prettier is the only formatter; ESLint is `next lint`.
 - React 19 is pinned via npm `overrides` — don't downgrade `@types/react`.
 - Generated Supabase types live in `packages/types/src/database.generated.ts` — regenerate after schema changes rather than editing by hand.

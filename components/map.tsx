@@ -159,7 +159,7 @@ export function PloggMap() {
   }
 
   return (
-    <div className="fixed inset-0">
+    <div className="absolute inset-0">
       <MapGL
         ref={mapRef}
         initialViewState={initialView}

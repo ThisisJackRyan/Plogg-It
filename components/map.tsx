@@ -14,7 +14,6 @@ import MapGL, {
   NavigationControl,
   Popup,
   Source,
-  type MapLayerMouseEvent,
   type MapRef,
   type ViewStateChangeEvent,
 } from 'react-map-gl';
@@ -68,7 +67,7 @@ export function PloggMap() {
         const point = { lng: pos.coords.longitude, lat: pos.coords.latitude };
         setUserLocation(point);
         if (routeSession.isActive && routeSession.routeId) {
-          routeSession.addWaypoint(point, pos.coords.accuracy ?? undefined);
+          routeSession.addWaypoint(point);
           pendingWaypointsRef.current.push({ routeId: routeSession.routeId, ...point });
         }
       },
@@ -130,7 +129,7 @@ export function PloggMap() {
     });
   }, []);
 
-  const handleMapClick = useCallback((_evt: MapLayerMouseEvent) => {
+  const handleMapClick = useCallback(() => {
     setSelected(null);
   }, []);
 

@@ -21,7 +21,7 @@ interface RouteSessionState {
   getWaypoints: () => LngLat[];
   startSession: (routeId: string) => void;
   endSession: () => void;
-  addWaypoint: (point: LngLat, accuracyM?: number) => void;
+  addWaypoint: (point: LngLat) => void;
   incrementItemCount: () => void;
 }
 
@@ -65,7 +65,7 @@ export function RouteSessionProvider({ children }: { children: ReactNode }) {
     setItemCount(0);
   }, []);
 
-  const addWaypoint = useCallback((point: LngLat, _accuracyM?: number) => {
+  const addWaypoint = useCallback((point: LngLat) => {
     const prev = waypointsRef.current.at(-1);
     if (prev) {
       const delta = haversineMeters(prev, point);

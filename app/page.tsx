@@ -16,7 +16,19 @@ export default async function HomePage() {
         <div className="pointer-events-auto rounded-full bg-white/90 px-3 py-1 text-sm font-semibold shadow">
           Plogg It
         </div>
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/90 px-2 py-1 shadow">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/90 px-1 py-1 shadow">
+          <Link
+            href="/feed"
+            className="rounded-full px-3 py-1 text-xs font-semibold text-black/70 hover:bg-black/5"
+          >
+            Feed
+          </Link>
+          <Link
+            href="/me"
+            className="rounded-full px-3 py-1 text-xs font-semibold text-black/70 hover:bg-black/5"
+          >
+            Profile
+          </Link>
           {email ? <span className="px-2 text-xs opacity-70">{email}</span> : null}
           <UserButton afterSignOutUrl="/sign-in" />
         </div>

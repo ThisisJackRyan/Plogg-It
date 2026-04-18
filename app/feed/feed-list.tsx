@@ -2,6 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useFeed } from '@plogg/supabase';
+import Link from 'next/link';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 import { FeedCard } from '@/components/feed-card';
 
@@ -24,6 +25,12 @@ export function FeedList() {
       <div className="rounded-lg border border-dashed border-black/10 p-8 text-center text-sm opacity-70">
         <p className="font-medium">Your feed is quiet.</p>
         <p className="mt-1">Follow other ploggers to see their reports and cleanups here.</p>
+        <Link
+          href="/people"
+          className="mt-4 inline-block rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700"
+        >
+          Find people to follow
+        </Link>
       </div>
     );
   }

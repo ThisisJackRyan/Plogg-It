@@ -6,14 +6,14 @@ import Link from 'next/link';
 export async function TopNav({
   active,
 }: {
-  active?: 'map' | 'routes' | 'feed' | 'profile';
+  active?: 'map' | 'routes' | 'feed' | 'people' | 'profile';
 }) {
   const user = await currentUser();
 
   const link = (
     href: string,
     label: string,
-    key: 'map' | 'routes' | 'feed' | 'profile',
+    key: 'map' | 'routes' | 'feed' | 'people' | 'profile',
   ) => (
     <Link
       key={key}
@@ -35,6 +35,7 @@ export async function TopNav({
         {link('/', 'Map', 'map')}
         {link('/routes', 'Routes', 'routes')}
         {link('/feed', 'Feed', 'feed')}
+        {link('/people', 'People', 'people')}
         {link('/me', 'Profile', 'profile')}
       </nav>
       <div className="flex items-center">

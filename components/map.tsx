@@ -8,7 +8,8 @@ import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
 import { CheckCircle2 } from 'lucide-react';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MapGL, {
   Layer,
   Marker,
@@ -35,6 +36,16 @@ export function PloggMap() {
   const routeSession = useRouteSession();
   const insertWaypointsMutation = useInsertWaypoints(supabase);
 
+  const searchParams = useSearchParams();
+  const targetView = useMemo(() => {
+    const lat = Number(searchParams.get('lat'));
+    const lng = Number(searchParams.get('lng'));
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+      return { latitude: lat, longitude: lng, zoom: 15 };
+    }
+    return null;
+  }, [searchParams]);
+
   const mapRef = useRef<MapRef | null>(null);
   const [bbox, setBbox] = useState<BoundingBox | null>(null);
   const [filter, setFilter] = useState<HotspotStatusFilter>('active');
@@ -47,22 +58,25 @@ export function PloggMap() {
   const pendingWaypointsRef = useRef<Array<{ routeId: string; lat: number; lng: number }>>([]);
 
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    if (targetView) {
+      setInitialView(targetView);
+    } else if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setInitialView(FALLBACK_VIEW);
-      return;
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setInitialView({
+            longitude: pos.coords.longitude,
+            latitude: pos.coords.latitude,
+            zoom: 13,
+          });
+        },
+        () => setInitialView(FALLBACK_VIEW),
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setInitialView({
-          longitude: pos.coords.longitude,
-          latitude: pos.coords.latitude,
-          zoom: 13,
-        });
-      },
-      () => setInitialView(FALLBACK_VIEW),
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
 
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const point = { lng: pos.coords.longitude, lat: pos.coords.latitude };
@@ -77,7 +91,7 @@ export function PloggMap() {
     );
     return () => navigator.geolocation.clearWatch(watchId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeSession.isActive, routeSession.routeId]);
+  }, [routeSession.isActive, routeSession.routeId, targetView]);
 
   // Flush accumulated waypoints to the DB every 15 seconds while a route is active.
   useEffect(() => {
@@ -105,6 +119,15 @@ export function PloggMap() {
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSession.isActive]);
+
+  useEffect(() => {
+    if (!targetView) return;
+    mapRef.current?.flyTo({
+      center: [targetView.longitude, targetView.latitude],
+      zoom: targetView.zoom,
+      essential: true,
+    });
+  }, [targetView]);
 
   const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox, filter);
 

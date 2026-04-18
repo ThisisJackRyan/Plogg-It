@@ -36,6 +36,7 @@ import {
   getProfileById,
   getProfileByUsername,
   getProfileStats,
+  listProfiles,
   updateProfile,
 } from '../queries/profiles';
 
@@ -92,6 +93,18 @@ export function useProfileStats(
     queryKey: [...PROFILE_KEY, 'stats', userId],
     enabled: Boolean(userId),
     queryFn: () => getProfileStats(client, userId!),
+  });
+}
+
+export function useProfiles(
+  client: SupabaseClient,
+  opts: { search?: string; excludeUserId?: string | null; limit?: number } = {},
+): UseQueryResult<Profile[], Error> {
+  const { search, excludeUserId, limit } = opts;
+  return useQuery({
+    queryKey: [...PROFILE_KEY, 'list', { search: search ?? '', excludeUserId, limit }],
+    queryFn: () => listProfiles(client, { search, excludeUserId, limit }),
+    staleTime: 30_000,
   });
 }
 

@@ -57,11 +57,13 @@ async function createContext(
   loadState = false,
 ): Promise<BrowserContext> {
   const fs = await import("fs");
+  const viewportW = Number(process.env.PW_VIEWPORT_WIDTH) || 1280;
+  const viewportH = Number(process.env.PW_VIEWPORT_HEIGHT) || 900;
   const opts: {
     viewport: { width: number; height: number };
     storageState?: string;
   } = {
-    viewport: { width: 1280, height: 900 },
+    viewport: { width: viewportW, height: viewportH },
   };
   if (loadState && fs.existsSync(STATE_PATH)) {
     opts.storageState = STATE_PATH;

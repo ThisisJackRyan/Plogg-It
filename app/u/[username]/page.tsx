@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { getProfileByUsername, getProfileStats } from '@plogg/supabase';
+import { getProfileByUsername, getProfileStats, getUserStats } from '@plogg/supabase';
 import { notFound } from 'next/navigation';
 import { TopNav } from '@/components/nav';
 import { FollowButton } from './follow-button';
@@ -17,9 +17,10 @@ export default async function ProfilePage({
   const profile = await getProfileByUsername(supabase, username);
   if (!profile) notFound();
 
-  const [{ userId }, stats] = await Promise.all([
+  const [{ userId }, stats, userStats] = await Promise.all([
     auth(),
     getProfileStats(supabase, profile.id),
+    getUserStats(supabase, profile.id),
   ]);
 
   const isSelf = userId === profile.id;
@@ -60,7 +61,10 @@ export default async function ProfilePage({
           ) : null}
         </header>
 
-        <section className="grid grid-cols-2 gap-2 rounded-xl bg-white p-4 text-center text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-4">
+  <section className="grid grid-cols-2 gap-2 rounded-xl bg-white p-4 text-center text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-4">
+          <Stat label="Total Points" value={userStats?.total_points ?? 0} />
+          <Stat label="Current Streak" value={userStats?.current_streak ?? 0} icon="🔥" />
+          <Stat label="Longest Streak" value={userStats?.longest_streak ?? 0} />
           <Stat label="Followers" value={stats.followersCount} href={`/u/${username}/followers`} />
           <Stat label="Following" value={stats.followingCount} href={`/u/${username}/following`} />
           <Stat label="Reports" value={stats.reportsCount} />
@@ -74,15 +78,20 @@ export default async function ProfilePage({
 function Stat({
   label,
   value,
+  icon,
   href,
 }: {
   label: string;
   value: number;
+  icon?: string;
   href?: string;
 }) {
   const inner = (
-    <div>
-      <div className="text-lg font-semibold">{value}</div>
+    <div className="flex flex-col items-center">
+      <div className="flex items-center gap-1 text-lg font-semibold">
+        {icon && <span>{icon}</span>}
+        {value}
+      </div>
       <div className="text-xs text-black/60">{label}</div>
     </div>
   );

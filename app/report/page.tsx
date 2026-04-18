@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MapGL, { Marker, NavigationControl, type MarkerDragEvent } from 'react-map-gl';
+import { toast } from 'sonner';
 import { Button, FieldError, Input } from '@/components/ui';
 import { env } from '@/lib/env';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
@@ -138,6 +139,24 @@ function ReportPageInner() {
         await linkHotspotToRoute(supabase, routeId, newHotspot.id);
         routeSession.incrementItemCount();
       }
+
+      const { data: ledgerRow } = await supabase
+        .from('point_ledger')
+        .select('id, amount')
+        .eq('user_id', user.id)
+        .eq('reason', 'hotspot_reported')
+        .eq('reference_id', newHotspot.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const awardedPoints = ledgerRow?.amount ?? 10;
+      toast.success('Hotspot Reported! 🎉', {
+        id: ledgerRow?.id
+          ? `point-ledger-${ledgerRow.id}`
+          : `hotspot-reported-${newHotspot.id}`,
+        description: `You earned ${awardedPoints} points for reporting a trash hotspot.`,
+      });
 
       router.replace('/');
       router.refresh();

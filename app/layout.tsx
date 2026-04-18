@@ -2,6 +2,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from '@/components/providers';
 import { clerkAppearance } from '@/lib/clerk-appearance';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" suppressHydrationWarning>
         <body suppressHydrationWarning>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <Toaster position="top-center" richColors />
+          </Providers>
         </body>
       </html>
     </ClerkProvider>

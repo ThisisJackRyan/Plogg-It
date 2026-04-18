@@ -9,6 +9,7 @@ import { Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui';
 import { useSupabaseBrowser } from '@/lib/supabase/browser';
 
@@ -86,6 +87,23 @@ export default function CleanupPage() {
           user.primaryEmailAddress?.emailAddress?.split('@')[0] ??
           null,
       });
+
+      const { data: ledgerRow } = await supabase
+        .from('point_ledger')
+        .select('id, amount')
+        .eq('user_id', user.id)
+        .eq('reason', 'hotspot_cleaned')
+        .eq('reference_id', params.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const awardedPoints = ledgerRow?.amount ?? 20;
+      toast.success('Cleanup Complete! 🏆', {
+        id: ledgerRow?.id ? `point-ledger-${ledgerRow.id}` : undefined,
+        description: `You earned ${awardedPoints} points for making the world cleaner.`,
+      });
+
       router.replace('/');
       router.refresh();
     } catch (err) {

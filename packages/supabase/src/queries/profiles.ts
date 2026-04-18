@@ -1,4 +1,4 @@
-import type { Profile, ProfileStats, ProfileUpdate } from '@plogg/types';
+import type { Profile, ProfileStats, ProfileUpdate, UserStats } from '@plogg/types';
 import type { SupabaseClient } from '../client';
 
 // The generated Database type lags the social schema; cast through `any`
@@ -131,4 +131,19 @@ export async function getProfileStats(
     reportsCount: row?.reports_count ?? 0,
     cleanupsCount: row?.cleanups_count ?? 0,
   };
+}
+
+export async function getUserStats(
+  client: SupabaseClient,
+  userId: string,
+): Promise<UserStats | null> {
+  const c = client as unknown as AnyClient;
+  const { data, error } = await c
+    .from('user_stats')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as UserStats | null) ?? null;
 }

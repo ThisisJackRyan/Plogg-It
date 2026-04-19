@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Plogg Club</string>
+    <string name="title_activity_main">Plogg Club</string>
+    <string name="package_name">club.plogg.app</string>
+    <string name="custom_url_scheme">club.plogg.app</string>
+</resources>

@@ -19,7 +19,7 @@ export async function TopNav() {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-12 items-center justify-between gap-1 border-b border-black/5 bg-white/90 px-2 backdrop-blur sm:gap-2 sm:px-4">
+    <header className="sticky top-0 z-20 flex min-h-[calc(3rem+env(safe-area-inset-top))] items-center justify-between gap-1 border-b border-black/5 bg-white/90 pt-[env(safe-area-inset-top)] pl-[calc(env(safe-area-inset-left)+0.5rem)] pr-[calc(env(safe-area-inset-right)+0.5rem)] backdrop-blur sm:gap-2 sm:pl-[calc(env(safe-area-inset-left)+1rem)] sm:pr-[calc(env(safe-area-inset-right)+1rem)]">
       <Link
         href="/"
         className="shrink-0 text-sm font-semibold sm:text-base"

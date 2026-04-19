@@ -203,13 +203,25 @@ export function LandingPage() {
       <AccentShapes />
       <AmbientBlobs />
 
-      {/* Free-floating sign-in pill */}
-      <Link
-        href="/sign-in"
-        className="absolute right-5 top-5 z-20 rounded-full bg-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-md ring-1 ring-brand-700/20 transition hover:bg-brand-700/90 active:scale-95 sm:right-10 sm:top-8"
+      {/* Top bar — wordmark + sign-in, offset for iOS dynamic island / notch */}
+      <div
+        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5 sm:px-10 sm:pt-8"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)' }}
       >
-        Sign in
-      </Link>
+        <Link
+          href="/"
+          className="text-lg font-extrabold tracking-tight text-gray-900 sm:text-xl"
+          aria-label="Plogg.Club home"
+        >
+          Plogg.Club
+        </Link>
+        <Link
+          href="/sign-in"
+          className="rounded-full bg-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-md ring-1 ring-brand-700/20 transition hover:bg-brand-700/90 active:scale-95"
+        >
+          Sign in
+        </Link>
+      </div>
 
       {/* Hero */}
       <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-24 sm:px-10 sm:pb-24 sm:pt-28 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-16 lg:pt-24 xl:gap-24">

@@ -58,7 +58,7 @@ export function RoutesList() {
   const { data: routes, isLoading } = useMyRoutes(supabase);
 
   if (isLoading) {
-    return <p className="text-sm text-black/50">Loading…</p>;
+    return null;
   }
 
   if (!routes || routes.length === 0) {

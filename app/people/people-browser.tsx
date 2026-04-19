@@ -38,9 +38,7 @@ export function PeopleBrowser() {
         className="w-full rounded-lg bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-brand-600"
       />
 
-      {isLoading ? (
-        <p className="py-8 text-center text-sm opacity-60">Loading…</p>
-      ) : isError ? (
+      {isLoading ? null : isError ? (
         <p className="py-8 text-center text-sm text-red-600">{error?.message}</p>
       ) : !profiles || profiles.length === 0 ? (
         <p className="py-8 text-center text-sm opacity-60">

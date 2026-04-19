@@ -9,6 +9,7 @@ import type { LngLat } from '@plogg/core';
 import type { Hotspot, Route, RouteWaypointInsert } from '@plogg/types';
 import type { SupabaseClient } from '../client';
 import {
+  deleteRoute,
   finalizeRoute,
   getRoute,
   insertWaypoints,
@@ -74,6 +75,18 @@ export function useFinalizeRoute(
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (routeId: string) => finalizeRoute(client, routeId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ROUTES_KEY });
+    },
+  });
+}
+
+export function useDeleteRoute(
+  client: SupabaseClient,
+): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (routeId: string) => deleteRoute(client, routeId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ROUTES_KEY });
     },

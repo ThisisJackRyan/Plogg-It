@@ -53,7 +53,8 @@ function ReportPageInner() {
     open: boolean;
     pointsEarned: number;
     totalPoints: number | null;
-  }>({ open: false, pointsEarned: 0, totalPoints: null });
+    unverified: boolean;
+  }>({ open: false, pointsEarned: 0, totalPoints: null, unverified: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cleanupFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -163,6 +164,44 @@ function ReportPageInner() {
         { userId: user.id, displayName },
       );
 
+      type ScoreResponse = { points: number; valid: boolean };
+
+      const reportRes = await fetch('/api/report/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hotspotId: newHotspot.id }),
+      });
+      if (reportRes.status === 422) {
+        const errJson = (await reportRes.json().catch(() => null)) as
+          | { rationale?: string; confidence?: number }
+          | null;
+        const baseMsg =
+          "We couldn't confirm this photo shows trash. Please take a clearer photo of the litter and try again.";
+        const isLocal =
+          typeof window !== 'undefined' &&
+          (window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1');
+        setSubmitError(
+          isLocal && errJson?.rationale
+            ? `${baseMsg}\n\n[dev] ${errJson.rationale}${
+                errJson.confidence !== undefined
+                  ? ` (confidence ${errJson.confidence.toFixed(2)})`
+                  : ''
+              }`
+            : baseMsg,
+        );
+        return;
+      }
+      if (!reportRes.ok) {
+        await supabase.from('hotspots').delete().eq('id', newHotspot.id);
+        setSubmitError(
+          "We couldn't verify your photo right now. Please try again later.",
+        );
+        return;
+      }
+      const reportJson = (await reportRes.json()) as ScoreResponse;
+      const reportPoints = reportJson.points;
+
       if (alreadyCleaned && cleanupPhotoFile) {
         const cleanupPhotoUrl = await uploadHotspotPhoto(supabase, cleanupPhotoFile, {
           userId: user.id,
@@ -181,28 +220,38 @@ function ReportPageInner() {
         routeSession.incrementItemCount();
       }
 
-      const [{ data: ledgerRow }, { data: statsRow }] = await Promise.all([
-        supabase
-          .from('point_ledger')
-          .select('id, amount')
-          .eq('user_id', user.id)
-          .eq('reason', 'hotspot_reported')
-          .eq('reference_id', newHotspot.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('user_stats')
-          .select('total_points')
-          .eq('id', user.id)
-          .maybeSingle(),
-      ]);
+      let cleanupPoints = 0;
+      let cleanupValid = false;
+      if (alreadyCleaned) {
+        try {
+          const res = await fetch('/api/cleanup/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hotspotId: newHotspot.id }),
+          });
+          if (!res.ok) throw new Error(`cleanup_score_http_${res.status}`);
+          const json = (await res.json()) as ScoreResponse;
+          cleanupPoints = json.points;
+          cleanupValid = json.valid;
+        } catch (err) {
+          console.warn('[ai-scoring] cleanup failed', err);
+        }
+      }
 
-      const awardedPoints = ledgerRow?.amount ?? 10;
+      const totalAwarded = reportPoints + cleanupPoints;
+      const unverified = alreadyCleaned && !cleanupValid && reportPoints === 0;
+
+      const { data: statsRow } = await supabase
+        .from('user_stats')
+        .select('total_points')
+        .eq('id', user.id)
+        .maybeSingle();
+
       setCelebration({
         open: true,
-        pointsEarned: awardedPoints,
+        pointsEarned: totalAwarded,
         totalPoints: statsRow?.total_points ?? null,
+        unverified,
       });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -407,7 +456,9 @@ function ReportPageInner() {
           ) : null}
         </section>
 
-        {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+        {submitError ? (
+          <p className="whitespace-pre-line text-sm text-red-600">{submitError}</p>
+        ) : null}
 
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting
@@ -424,6 +475,7 @@ function ReportPageInner() {
         open={celebration.open}
         pointsEarned={celebration.pointsEarned}
         totalPoints={celebration.totalPoints}
+        unverified={celebration.unverified}
         title={alreadyCleaned ? 'Reported & Cleaned!' : 'Hotspot Reported!'}
         subtitle={
           alreadyCleaned

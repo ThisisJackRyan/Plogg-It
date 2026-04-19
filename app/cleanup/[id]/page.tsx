@@ -29,7 +29,8 @@ export default function CleanupPage() {
     open: boolean;
     pointsEarned: number;
     totalPoints: number | null;
-  }>({ open: false, pointsEarned: 0, totalPoints: null });
+    unverified: boolean;
+  }>({ open: false, pointsEarned: 0, totalPoints: null, unverified: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -93,28 +94,37 @@ export default function CleanupPage() {
           null,
       });
 
-      const [{ data: ledgerRow }, { data: statsRow }] = await Promise.all([
-        supabase
-          .from('point_ledger')
-          .select('id, amount')
-          .eq('user_id', user.id)
-          .eq('reason', 'hotspot_cleaned')
-          .eq('reference_id', params.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('user_stats')
-          .select('total_points')
-          .eq('id', user.id)
-          .maybeSingle(),
-      ]);
+      let awardedPoints = 0;
+      let unverified = false;
+      try {
+        const scoreRes = await fetch('/api/cleanup/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hotspotId: params.id }),
+        });
+        if (!scoreRes.ok) throw new Error(`score_http_${scoreRes.status}`);
+        const scoreJson = (await scoreRes.json()) as {
+          points: number;
+          valid: boolean;
+        };
+        awardedPoints = scoreJson.points;
+        unverified = !scoreJson.valid;
+      } catch (err) {
+        console.warn('[ai-scoring] failed', err);
+        unverified = true;
+      }
 
-      const awardedPoints = ledgerRow?.amount ?? 20;
+      const { data: statsRow } = await supabase
+        .from('user_stats')
+        .select('total_points')
+        .eq('id', user.id)
+        .maybeSingle();
+
       setCelebration({
         open: true,
         pointsEarned: awardedPoints,
         totalPoints: statsRow?.total_points ?? null,
+        unverified,
       });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -196,13 +206,14 @@ export default function CleanupPage() {
         disabled={submitting || hotspot?.status === 'cleaned'}
         onClick={onSubmit}
       >
-        {submitting ? 'Submitting…' : 'Mark cleaned'}
+        {submitting ? 'Analyzing your cleanup…' : 'Mark cleaned'}
       </Button>
 
       <CleanupCelebration
         open={celebration.open}
         pointsEarned={celebration.pointsEarned}
         totalPoints={celebration.totalPoints}
+        unverified={celebration.unverified}
         onContinue={() => {
           router.replace('/');
           router.refresh();

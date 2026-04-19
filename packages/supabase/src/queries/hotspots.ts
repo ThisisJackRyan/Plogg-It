@@ -20,7 +20,7 @@ export async function listHotspotsInBbox(
     min_lat: bbox.minLat,
     max_lng: bbox.maxLng,
     max_lat: bbox.maxLat,
-    status_filter: filter === 'all' ? null : filter,
+    status_filter: filter === 'all' ? undefined : filter,
   });
   if (error) throw error;
   return ((data ?? []) as unknown as RpcRow[]).map(mapRpcRowToHotspot);

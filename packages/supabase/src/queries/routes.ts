@@ -60,6 +60,17 @@ export async function finalizeRoute(
   return mapRouteRow(row as RouteRow);
 }
 
+export async function deleteRoute(
+  client: SupabaseClient,
+  routeId: string,
+): Promise<void> {
+  const { error } = await (client as AnyClient)
+    .from('routes')
+    .delete()
+    .eq('id', routeId);
+  if (error) throw error;
+}
+
 export async function linkHotspotToRoute(
   client: SupabaseClient,
   routeId: string,

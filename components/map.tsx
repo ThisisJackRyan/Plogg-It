@@ -67,6 +67,10 @@ export function PloggMap() {
     Array<{ routeId: string; lat: number; lng: number; accuracyM: number }>
   >([]);
 
+  // While a route is active, keep the map centered on the user unless they
+  // manually pan. Set back to true when they tap the user marker / recenter.
+  const followUserRef = useRef(true);
+
   useEffect(() => {
     if (targetView) {
       setInitialView(targetView);
@@ -83,11 +87,11 @@ export function PloggMap() {
           setInitialView({
             longitude: pos.coords.longitude,
             latitude: pos.coords.latitude,
-            zoom: 14,
+            zoom: 16,
           });
           mapRef.current?.flyTo({
             center: [pos.coords.longitude, pos.coords.latitude],
-            zoom: 14,
+            zoom: 16,
             essential: true,
           });
         },
@@ -108,7 +112,7 @@ export function PloggMap() {
             setInitialView({
               longitude: pos.coords.longitude,
               latitude: pos.coords.latitude,
-              zoom: 14,
+              zoom: 16,
             });
           }
           return 'granted';
@@ -126,6 +130,13 @@ export function PloggMap() {
               lat: smoothed.lat,
               lng: smoothed.lng,
               accuracyM: pos.coords.accuracy,
+            });
+          }
+          if (followUserRef.current) {
+            mapRef.current?.easeTo({
+              center: [pos.coords.longitude, pos.coords.latitude],
+              duration: 800,
+              essential: true,
             });
           }
         }
@@ -178,6 +189,36 @@ export function PloggMap() {
     });
   }, [targetView]);
 
+  const lastZoomedRouteRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!routeSession.isActive || !routeSession.routeId) return;
+    if (lastZoomedRouteRef.current === routeSession.routeId) return;
+    followUserRef.current = true;
+    const map = mapRef.current;
+    if (!map) return;
+    lastZoomedRouteRef.current = routeSession.routeId;
+    const [cx, cy] = map.getCenter().toArray();
+    const center: [number, number] = userLocation
+      ? [userLocation.lng, userLocation.lat]
+      : [cx, cy];
+    // Use a short timeout to ensure the flyTo isn't clobbered by any
+    // in-flight camera animation from initial geolocation.
+    const id = window.setTimeout(() => {
+      map.easeTo({
+        center,
+        zoom: 18,
+        duration: 900,
+        essential: true,
+      });
+    }, 50);
+    return () => window.clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSession.isActive, routeSession.routeId]);
+
+  useEffect(() => {
+    if (!routeSession.isActive) lastZoomedRouteRef.current = null;
+  }, [routeSession.isActive]);
+
   const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox, filter);
 
   const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
@@ -208,6 +249,7 @@ export function PloggMap() {
 
   const recenterOnUser = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    followUserRef.current = true;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocationStatus('granted');
@@ -216,11 +258,11 @@ export function PloggMap() {
         setInitialView({
           longitude: pos.coords.longitude,
           latitude: pos.coords.latitude,
-          zoom: 14,
+          zoom: 16,
         });
         mapRef.current?.flyTo({
           center: [pos.coords.longitude, pos.coords.latitude],
-          zoom: 14,
+          zoom: 16,
           essential: true,
         });
       },
@@ -254,6 +296,9 @@ export function PloggMap() {
         initialViewState={initialView}
         onMoveEnd={handleMoveEnd}
         onLoad={handleLoad}
+        onDragStart={() => {
+          followUserRef.current = false;
+        }}
         onClick={handleMapClick}
         mapStyle="mapbox://styles/mapbox/streets-v12"
         mapboxAccessToken={env.MAPBOX_TOKEN}
@@ -266,15 +311,6 @@ export function PloggMap() {
           showUserHeading
           positionOptions={{ enableHighAccuracy: true }}
         />
-
-        {userLocation ? (
-          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
-            <span className="relative flex h-4 w-4">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-60" />
-              <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-blue-500 shadow" />
-            </span>
-          </Marker>
-        ) : null}
 
         {hotspots?.map((h) => (
           <Marker
@@ -303,6 +339,29 @@ export function PloggMap() {
           >
             <HotspotCard hotspot={selected} />
           </Popup>
+        ) : null}
+
+        {userLocation ? (
+          <Marker
+            longitude={userLocation.lng}
+            latitude={userLocation.lat}
+            anchor="center"
+            style={{ zIndex: 20 }}
+            onClick={(e) => {
+              e.originalEvent?.stopPropagation();
+              followUserRef.current = true;
+              mapRef.current?.easeTo({
+                center: [userLocation.lng, userLocation.lat],
+                duration: 500,
+                essential: true,
+              });
+            }}
+          >
+            <span className="relative flex h-4 w-4 cursor-pointer">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-60" />
+              <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-blue-500 shadow" />
+            </span>
+          </Marker>
         ) : null}
 
         {pathPoints.length >= 2 ? (

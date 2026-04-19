@@ -6,7 +6,6 @@ import { cleanupHotspot, getHotspot, uploadHotspotPhoto } from '@plogg/supabase'
 import type { Hotspot } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
 import { Camera } from 'lucide-react';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui';
@@ -129,9 +128,16 @@ export default function CleanupPage() {
     <PageTransition className="mx-auto flex min-h-[100dvh] max-w-xl flex-col gap-6 px-4 py-6 sm:p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Mark as cleaned</h1>
-        <Link href="/" className="text-sm text-brand-700 hover:underline">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+            else router.push('/');
+          }}
+          className="text-sm text-brand-700 hover:underline"
+        >
           Cancel
-        </Link>
+        </button>
       </header>
 
       {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}

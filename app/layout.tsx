@@ -18,7 +18,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  modal: React.ReactNode;
+}) {
   return (
     <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" suppressHydrationWarning>
@@ -28,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <TopNav />
             </NavShell>
             {children}
+            {modal}
             <Toaster position="top-center" richColors />
           </Providers>
         </body>

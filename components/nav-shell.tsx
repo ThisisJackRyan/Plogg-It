@@ -9,8 +9,6 @@ const HIDE_PREFIXES = ['/sign-in', '/sign-up', '/report', '/cleanup'];
 function shouldHide(pathname: string | null): boolean {
   if (!pathname) return false;
   if (HIDE_PREFIXES.some((p) => pathname.startsWith(p))) return true;
-  // Individual route-detail pages (e.g. /routes/abc123) hide nav; /routes index keeps it.
-  if (/^\/routes\/[^/]+$/.test(pathname)) return true;
   return false;
 }
 

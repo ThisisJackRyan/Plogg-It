@@ -274,7 +274,9 @@ export function PloggMap() {
   }, []);
 
   const showLocationPrompt =
-    !promptDismissed && !targetView && locationStatus !== 'granted';
+    !promptDismissed &&
+    !targetView &&
+    (locationStatus === 'denied' || locationStatus === 'unavailable');
 
   if (showLocationPrompt) {
     return (
@@ -434,7 +436,7 @@ function LocationPrompt({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 sm:items-center"
+      className="pointer-events-none absolute inset-0 flex items-center justify-center p-4"
     >
       <motion.div
         initial={{ y: 24, opacity: 0, scale: 0.96 }}

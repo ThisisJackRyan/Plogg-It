@@ -1,5 +1,6 @@
 import { PageTransition, StaggerList, StaggerItem } from '@/components/motion';
 import { getSupabaseServer } from '@/lib/supabase/server';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export default async function LeaderboardPage() {
@@ -29,7 +30,7 @@ export default async function LeaderboardPage() {
             const name = profile.display_name || profile.username || 'Anonymous';
             return (
               <StaggerItem key={stat.id}>
-              <a
+              <Link
                 href={profile.username ? `/u/${profile.username}` : '#'}
                 className="flex items-center gap-4 p-4 transition-colors hover:bg-black/5"
               >
@@ -58,7 +59,7 @@ export default async function LeaderboardPage() {
                 <div className="whitespace-nowrap text-right">
                   <div className="font-semibold text-brand-600">{stat.total_points} pts</div>
                 </div>
-              </a>
+              </Link>
               </StaggerItem>
             );
           })}

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { RouteSessionProvider } from './route-session-context';
+import { NavigationPendingProvider } from './navigation-pending-context';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -20,7 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <RouteSessionProvider>
-        {children}
+        <NavigationPendingProvider>{children}</NavigationPendingProvider>
       </RouteSessionProvider>
     </QueryClientProvider>
   );

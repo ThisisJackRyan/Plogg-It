@@ -4,8 +4,10 @@ import { LayoutGroup, motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useLayoutEffect, useState } from 'react';
+import { useNavigationPending } from './navigation-pending-context';
+import { hasSkeletonFor } from './route-skeletons';
 
-export type NavKey = 'map' | 'routes' | 'feed' | 'people' | 'profile' | 'leaderboard';
+export type NavKey = 'map' | 'routes' | 'feed' | 'people' | 'profile' | 'leaderboard' | 'rewards';
 
 function deriveActive(pathname: string | null, selfProfilePath: string): NavKey | undefined {
   if (!pathname) return undefined;
@@ -14,6 +16,7 @@ function deriveActive(pathname: string | null, selfProfilePath: string): NavKey 
   if (pathname.startsWith('/feed')) return 'feed';
   if (pathname.startsWith('/people')) return 'people';
   if (pathname.startsWith('/leaderboard')) return 'leaderboard';
+  if (pathname.startsWith('/marketplace')) return 'rewards';
   if (pathname === selfProfilePath || pathname.startsWith('/settings/profile')) return 'profile';
   if (selfProfilePath && pathname.startsWith(`${selfProfilePath}/`)) return 'profile';
   if (pathname.startsWith('/u/')) return 'people';
@@ -26,6 +29,7 @@ const items: ReadonlyArray<{ key: NavKey; href: string; label: string }> = [
   { key: 'feed', href: '/feed', label: 'Feed' },
   { key: 'people', href: '/people', label: 'People' },
   { key: 'leaderboard', href: '/leaderboard', label: 'Top' },
+  { key: 'rewards', href: '/marketplace', label: 'Rewards' },
   { key: 'profile', href: '', label: 'Profile' },
 ];
 
@@ -38,6 +42,7 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
   const pathname = usePathname();
   const active = deriveActive(pathname, profileHref);
   const [rendered, setRendered] = useState<NavKey | undefined>(active);
+  const { setPending } = useNavigationPending();
 
   // Before paint on the client, if the previous route had a different active tab,
   // render the pill at that previous tab so the post-paint re-render below
@@ -64,10 +69,21 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
         {items.map(({ key, href, label }) => {
           const realHref = key === 'profile' ? profileHref : href;
           const isActive = rendered === key;
+          const selectOptimistically = () => {
+            if (rendered !== key) setRendered(key);
+            window.sessionStorage.setItem(STORAGE_KEY, key);
+            // Swap old page for the target skeleton immediately, so the old
+            // route doesn't linger until the new bundle + loading.tsx stream in.
+            if (active !== key && hasSkeletonFor(key)) {
+              setPending(key);
+            }
+          };
           return (
             <Link
               key={key}
               href={realHref}
+              onClick={selectOptimistically}
+              onTouchStart={selectOptimistically}
               className="relative rounded-full px-1.5 py-1.5 text-[11px] font-semibold transition-transform duration-200 active:scale-[0.95] min-[400px]:px-2 sm:px-3 sm:py-2 sm:text-sm"
             >
               {isActive ? (

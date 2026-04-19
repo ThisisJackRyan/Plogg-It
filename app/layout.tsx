@@ -4,6 +4,7 @@ import { Providers } from '@/components/providers';
 import { clerkAppearance } from '@/lib/clerk-appearance';
 import { NavShell } from '@/components/nav-shell';
 import { TopNav } from '@/components/nav';
+import { PagePendingOverlay } from '@/components/page-pending-overlay';
 import { Toaster } from 'sonner';
 import './globals.css';
 
@@ -34,7 +35,7 @@ export default function RootLayout({
             <NavShell>
               <TopNav />
             </NavShell>
-            {children}
+            <PagePendingOverlay>{children}</PagePendingOverlay>
             {modal}
             <Toaster position="top-center" richColors />
           </Providers>

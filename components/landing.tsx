@@ -199,7 +199,7 @@ function Pin({
 
 export function LandingPage() {
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-white">
+    <main className="relative min-h-[100dvh] overflow-x-hidden bg-white">
       <AccentShapes />
       <AmbientBlobs />
 
@@ -212,7 +212,7 @@ export function LandingPage() {
       </Link>
 
       {/* Hero */}
-      <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-12 sm:px-10 sm:pb-24 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-16 lg:pt-24 xl:gap-24">
+      <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-24 sm:px-10 sm:pb-24 sm:pt-28 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-16 lg:pt-24 xl:gap-24">
         {/* Copy column */}
         <div className="order-2 text-center lg:order-1 lg:text-left">
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">

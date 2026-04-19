@@ -1,5 +1,6 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -15,6 +16,9 @@ function shouldHide(pathname: string | null): boolean {
 
 export function NavShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { isLoaded, isSignedIn } = useUser();
+  if (!isLoaded) return null;
+  if (!isSignedIn) return null;
   if (shouldHide(pathname)) return null;
   return <>{children}</>;
 }

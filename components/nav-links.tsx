@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useState } from 'react';
 import { useNavigationPending } from './navigation-pending-context';
 import { hasSkeletonFor } from './route-skeletons';
 
-export type NavKey = 'map' | 'routes' | 'feed' | 'people' | 'profile' | 'leaderboard';
+export type NavKey = 'map' | 'routes' | 'feed' | 'people' | 'profile' | 'leaderboard' | 'rewards';
 
 function deriveActive(pathname: string | null, selfProfilePath: string): NavKey | undefined {
   if (!pathname) return undefined;
@@ -16,6 +16,7 @@ function deriveActive(pathname: string | null, selfProfilePath: string): NavKey 
   if (pathname.startsWith('/feed')) return 'feed';
   if (pathname.startsWith('/people')) return 'people';
   if (pathname.startsWith('/leaderboard')) return 'leaderboard';
+  if (pathname.startsWith('/marketplace')) return 'rewards';
   if (pathname === selfProfilePath || pathname.startsWith('/settings/profile')) return 'profile';
   if (selfProfilePath && pathname.startsWith(`${selfProfilePath}/`)) return 'profile';
   if (pathname.startsWith('/u/')) return 'people';
@@ -28,6 +29,7 @@ const items: ReadonlyArray<{ key: NavKey; href: string; label: string }> = [
   { key: 'feed', href: '/feed', label: 'Feed' },
   { key: 'people', href: '/people', label: 'People' },
   { key: 'leaderboard', href: '/leaderboard', label: 'Top' },
+  { key: 'rewards', href: '/marketplace', label: 'Rewards' },
   { key: 'profile', href: '', label: 'Profile' },
 ];
 

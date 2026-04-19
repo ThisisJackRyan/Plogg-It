@@ -5,7 +5,7 @@ import { PHOTO_TARGETS } from '@plogg/core';
 import { cleanupHotspot, getHotspot, uploadHotspotPhoto } from '@plogg/supabase';
 import type { Hotspot } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
-import { Camera } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui';
@@ -25,6 +25,7 @@ export default function CleanupPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [scoring, setScoring] = useState(false);
   const [celebration, setCelebration] = useState<{
     open: boolean;
     pointsEarned: number;
@@ -96,6 +97,7 @@ export default function CleanupPage() {
 
       let awardedPoints = 0;
       let unverified = false;
+      setScoring(true);
       try {
         const scoreRes = await fetch('/api/cleanup/score', {
           method: 'POST',
@@ -112,6 +114,8 @@ export default function CleanupPage() {
       } catch (err) {
         console.warn('[ai-scoring] failed', err);
         unverified = true;
+      } finally {
+        setScoring(false);
       }
 
       const { data: statsRow } = await supabase
@@ -206,7 +210,16 @@ export default function CleanupPage() {
         disabled={submitting || hotspot?.status === 'cleaned'}
         onClick={onSubmit}
       >
-        {submitting ? 'Analyzing your cleanup…' : 'Mark cleaned'}
+        <span className="inline-flex items-center justify-center gap-2">
+          {submitting ? (
+            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+          ) : null}
+          {scoring
+            ? 'Analyzing your cleanup…'
+            : submitting
+              ? 'Uploading…'
+              : 'Mark cleaned'}
+        </span>
       </Button>
 
       <CleanupCelebration

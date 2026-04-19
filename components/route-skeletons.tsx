@@ -83,6 +83,41 @@ export function LeaderboardSkeleton() {
   );
 }
 
+export function MarketplaceSkeleton() {
+  return (
+    <main className="flex-1 bg-neutral-50">
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-6 w-52 animate-pulse rounded bg-neutral-200" />
+            <div className="h-3 w-72 animate-pulse rounded bg-neutral-100" />
+          </div>
+          <div className="h-9 w-32 animate-pulse rounded-full bg-neutral-200" />
+        </header>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
+            >
+              <div className="h-32 animate-pulse bg-neutral-200" />
+              <div className="flex flex-col gap-2 p-4">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-200" />
+                <div className="h-3 w-full animate-pulse rounded bg-neutral-100" />
+                <div className="h-3 w-4/5 animate-pulse rounded bg-neutral-100" />
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="h-4 w-14 animate-pulse rounded bg-neutral-200" />
+                  <div className="h-7 w-16 animate-pulse rounded-full bg-neutral-200" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export function ProfileSkeleton() {
   return (
     <main className="flex-1 bg-neutral-50">
@@ -118,6 +153,8 @@ export function RouteSkeletonFor({ navKey }: { navKey: NavKey }) {
       return <RoutesSkeleton />;
     case 'leaderboard':
       return <LeaderboardSkeleton />;
+    case 'rewards':
+      return <MarketplaceSkeleton />;
     case 'profile':
       return <ProfileSkeleton />;
     default:
@@ -131,6 +168,7 @@ export function hasSkeletonFor(navKey: NavKey | undefined | null): boolean {
     navKey === 'people' ||
     navKey === 'routes' ||
     navKey === 'leaderboard' ||
+    navKey === 'rewards' ||
     navKey === 'profile'
   );
 }

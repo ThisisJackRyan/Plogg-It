@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { motion } from 'framer-motion';
 import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
+import { haversineMeters } from '@plogg/core';
 import type { LngLat } from '@plogg/core';
 import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
 import { CheckCircle2, MapPin } from 'lucide-react';
@@ -63,6 +64,8 @@ function writeCachedLocation(lat: number, lng: number) {
 }
 
 const CLEANED_COLOR = '#2563eb';
+
+const USER_LOCATION_MIN_MOVE_M = 2;
 
 export function PloggMap() {
   const supabase = useSupabaseBrowser();
@@ -134,7 +137,12 @@ export function PloggMap() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const rawPoint = { lng: pos.coords.longitude, lat: pos.coords.latitude };
-        setUserLocation(rawPoint);
+        setUserLocation((prev) => {
+          if (!prev) return rawPoint;
+          return haversineMeters(prev, rawPoint) < USER_LOCATION_MIN_MOVE_M
+            ? prev
+            : rawPoint;
+        });
         writeCachedLocation(pos.coords.latitude, pos.coords.longitude);
         setLocationStatus((prev) => {
           if (prev !== 'granted') {
@@ -247,6 +255,15 @@ export function PloggMap() {
   useEffect(() => {
     if (!routeSession.isActive) lastZoomedRouteRef.current = null;
   }, [routeSession.isActive]);
+
+  const routeLineCoords = useMemo(() => {
+    const coords = pathPoints.map((p) => [p.lng, p.lat] as [number, number]);
+    if (!routeSession.isActive || !userLocation) return coords;
+    const last = pathPoints[pathPoints.length - 1];
+    if (last && haversineMeters(last, userLocation) < 1) return coords;
+    coords.push([userLocation.lng, userLocation.lat]);
+    return coords;
+  }, [pathPoints, routeSession.isActive, userLocation]);
 
   const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox, filter);
 
@@ -414,7 +431,7 @@ export function PloggMap() {
           </Marker>
         ) : null}
 
-        {pathPoints.length >= 2 ? (
+        {routeLineCoords.length >= 2 ? (
           <Source
             id="route-path"
             type="geojson"
@@ -422,7 +439,7 @@ export function PloggMap() {
               type: 'Feature',
               geometry: {
                 type: 'LineString',
-                coordinates: pathPoints.map((p) => [p.lng, p.lat]),
+                coordinates: routeLineCoords,
               },
               properties: {},
             }}

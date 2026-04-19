@@ -43,3 +43,22 @@ supabase/.branches/
 
 # Claude agent scratch (screenshots, notes)
 .context/
+
+# Capacitor / Android build output
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/local.properties
+android/captures/
+android/.idea/
+*.keystore
+*.jks
+
+# Capacitor / iOS build output
+ios/App/Pods/
+ios/DerivedData/
+ios/App/build/
+ios/App/Podfile.lock
+ios/.xcode.env.local
+xcuserdata/

@@ -20,6 +20,9 @@
     "clean": "rm -rf .next node_modules"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@clerk/nextjs": "^6.9.6",
     "@hookform/resolvers": "^3.10.0",
     "@plogg/core": "*",
@@ -42,6 +45,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.3.1",
     "@clerk/testing": "^2.0.17",
     "@eslint/eslintrc": "^3.2.0",
     "@playwright/test": "^1.59.1",

@@ -15,6 +15,8 @@ function deriveActive(pathname: string | null, selfProfilePath: string): NavKey 
   if (pathname.startsWith('/people')) return 'people';
   if (pathname.startsWith('/leaderboard')) return 'leaderboard';
   if (pathname === selfProfilePath || pathname.startsWith('/settings/profile')) return 'profile';
+  if (selfProfilePath && pathname.startsWith(`${selfProfilePath}/`)) return 'profile';
+  if (pathname.startsWith('/u/')) return 'people';
   return undefined;
 }
 

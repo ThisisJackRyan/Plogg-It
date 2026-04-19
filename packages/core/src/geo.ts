@@ -26,6 +26,28 @@ export function pointToBbox(point: LngLat, radiusMeters: number): BoundingBox {
   };
 }
 
+/** Expand a bbox outward by `factor` on each side (e.g. 0.5 ≈ 2.25× area). */
+export function expandBbox(bbox: BoundingBox, factor: number): BoundingBox {
+  const lngPad = (bbox.maxLng - bbox.minLng) * factor;
+  const latPad = (bbox.maxLat - bbox.minLat) * factor;
+  return {
+    minLng: bbox.minLng - lngPad,
+    minLat: bbox.minLat - latPad,
+    maxLng: bbox.maxLng + lngPad,
+    maxLat: bbox.maxLat + latPad,
+  };
+}
+
+/** True if `inner` is fully contained within `outer`. */
+export function bboxContains(outer: BoundingBox, inner: BoundingBox): boolean {
+  return (
+    inner.minLng >= outer.minLng &&
+    inner.maxLng <= outer.maxLng &&
+    inner.minLat >= outer.minLat &&
+    inner.maxLat <= outer.maxLat
+  );
+}
+
 /** Haversine distance in meters between two points. Accurate to ~0.5% for short distances. */
 export function haversineMeters(a: LngLat, b: LngLat): number {
   const R = 6_371_000;

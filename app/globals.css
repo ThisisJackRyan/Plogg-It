@@ -47,6 +47,10 @@ body {
 }
 
 /* Rounder, site-consistent Mapbox popup */
+.plogg-popup {
+  z-index: 30;
+}
+
 .plogg-popup .mapboxgl-popup-content {
   border-radius: 1rem;
   padding: 0.75rem;

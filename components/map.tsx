@@ -31,6 +31,37 @@ const FALLBACK_VIEW = {
   zoom: 12,
 };
 
+const LAST_LOCATION_KEY = 'plogg-last-location';
+
+function readCachedLocation(): typeof FALLBACK_VIEW | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(LAST_LOCATION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { lat?: number; lng?: number };
+    if (
+      typeof parsed.lat === 'number' &&
+      typeof parsed.lng === 'number' &&
+      Number.isFinite(parsed.lat) &&
+      Number.isFinite(parsed.lng)
+    ) {
+      return { latitude: parsed.lat, longitude: parsed.lng, zoom: 15 };
+    }
+  } catch {
+    /* ignore parse errors */
+  }
+  return null;
+}
+
+function writeCachedLocation(lat: number, lng: number) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng }));
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
 const CLEANED_COLOR = '#2563eb';
 
 export function PloggMap() {
@@ -53,7 +84,7 @@ export function PloggMap() {
   const [filter, setFilter] = useState<HotspotStatusFilter>('active');
   const [selected, setSelected] = useState<Hotspot | null>(null);
   const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW>(
-    () => targetView ?? FALLBACK_VIEW,
+    () => targetView ?? readCachedLocation() ?? FALLBACK_VIEW,
   );
   const [userLocation, setUserLocation] = useState<LngLat | null>(null);
   const [pathPoints, setPathPoints] = useState<LngLat[]>([]);
@@ -61,6 +92,8 @@ export function PloggMap() {
     'pending' | 'granted' | 'denied' | 'unavailable'
   >('pending');
   const [promptDismissed, setPromptDismissed] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const hasInitialCenteredRef = useRef(false);
 
   // Buffer of waypoints not yet flushed to the DB.
   const pendingWaypointsRef = useRef<
@@ -76,23 +109,18 @@ export function PloggMap() {
       setInitialView(targetView);
       setLocationStatus('granted');
     } else if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setInitialView(FALLBACK_VIEW);
+      setInitialView(readCachedLocation() ?? FALLBACK_VIEW);
       setLocationStatus('unavailable');
     } else {
-      setInitialView(FALLBACK_VIEW);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setLocationStatus('granted');
           setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
+          writeCachedLocation(pos.coords.latitude, pos.coords.longitude);
           setInitialView({
             longitude: pos.coords.longitude,
             latitude: pos.coords.latitude,
             zoom: 16,
-          });
-          mapRef.current?.flyTo({
-            center: [pos.coords.longitude, pos.coords.latitude],
-            zoom: 16,
-            essential: true,
           });
         },
         (err) => {
@@ -107,6 +135,7 @@ export function PloggMap() {
       (pos) => {
         const rawPoint = { lng: pos.coords.longitude, lat: pos.coords.latitude };
         setUserLocation(rawPoint);
+        writeCachedLocation(pos.coords.latitude, pos.coords.longitude);
         setLocationStatus((prev) => {
           if (prev !== 'granted') {
             setInitialView({
@@ -233,6 +262,7 @@ export function PloggMap() {
   }, []);
 
   const handleLoad = useCallback((evt: { target: MapboxMap }) => {
+    setMapLoaded(true);
     const bounds = evt.target.getBounds();
     if (!bounds) return;
     setBbox({
@@ -242,6 +272,22 @@ export function PloggMap() {
       maxLat: bounds.getNorth(),
     });
   }, []);
+
+  // Center on the user the first time we have both a map and a location.
+  // `initialViewState` is only read on mount, and `flyTo` silently no-ops if
+  // called before the map is loaded — so we defer the centering until both
+  // are ready.
+  useEffect(() => {
+    if (hasInitialCenteredRef.current) return;
+    if (targetView) return;
+    if (!mapLoaded || !userLocation) return;
+    hasInitialCenteredRef.current = true;
+    mapRef.current?.flyTo({
+      center: [userLocation.lng, userLocation.lat],
+      zoom: 16,
+      essential: true,
+    });
+  }, [mapLoaded, userLocation, targetView]);
 
   const handleMapClick = useCallback(() => {
     setSelected(null);
@@ -335,9 +381,11 @@ export function PloggMap() {
             latitude={selected.lat}
             anchor="bottom"
             offset={28}
-            closeOnClick={false}
+            closeButton={false}
+            closeOnClick
             onClose={() => setSelected(null)}
             maxWidth="260px"
+            className="plogg-popup"
           >
             <HotspotCard hotspot={selected} />
           </Popup>
@@ -598,7 +646,7 @@ function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
   return (
     <div className="space-y-2 text-sm text-black">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={hotspot.photoUrl} alt="" className="aspect-video w-full rounded object-cover" />
+      <img src={hotspot.photoUrl} alt="" className="aspect-video w-full rounded-xl object-cover" />
       <p className="font-medium leading-snug">{hotspot.description}</p>
       <div className="flex items-center justify-between text-xs text-black/60">
         <span>Difficulty {hotspot.difficulty}/5</span>
@@ -614,7 +662,7 @@ function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
           <img
             src={hotspot.cleanupPhotoUrl}
             alt="Cleanup proof"
-            className="aspect-video w-full rounded object-cover"
+            className="aspect-video w-full rounded-xl object-cover"
           />
           <p className="text-xs text-black/60">
             by {hotspot.cleanerDisplayName ?? 'Anonymous'}
@@ -624,7 +672,7 @@ function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
       {!isCleaned ? (
         <Link
           href={`/cleanup/${hotspot.id}`}
-          className="block rounded-md bg-brand-600 px-3 py-2 text-center text-xs font-semibold text-white hover:bg-brand-700"
+          className="block rounded-lg bg-brand-600 px-3 py-2 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98]"
         >
           I cleaned this
         </Link>

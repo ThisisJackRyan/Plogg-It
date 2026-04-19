@@ -45,3 +45,19 @@ body {
     animation: none;
   }
 }
+
+/* Rounder, site-consistent Mapbox popup */
+.plogg-popup .mapboxgl-popup-content {
+  border-radius: 1rem;
+  padding: 0.75rem;
+  box-shadow:
+    0 10px 24px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  background: #fff;
+}
+
+.plogg-popup .mapboxgl-popup-tip {
+  border-top-color: #fff;
+  border-bottom-color: #fff;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.06));
+}

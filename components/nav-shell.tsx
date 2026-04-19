@@ -4,7 +4,7 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-const HIDE_PREFIXES = ['/sign-in', '/sign-up', '/report', '/cleanup'];
+const HIDE_PREFIXES = ['/sign-in', '/sign-up'];
 
 function shouldHide(pathname: string | null): boolean {
   if (!pathname) return false;

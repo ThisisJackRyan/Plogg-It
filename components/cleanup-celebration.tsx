@@ -13,6 +13,7 @@ type Props = {
   onContinue: () => void;
   title?: string;
   subtitle?: string;
+  unverified?: boolean;
 };
 
 function CountUp({ to, duration = 1.2 }: { to: number; duration?: number }) {
@@ -54,13 +55,21 @@ export function CleanupCelebration({
   pointsEarned,
   totalPoints,
   onContinue,
-  title = 'Cleanup Complete!',
-  subtitle = 'You made the world a little cleaner.',
+  title,
+  subtitle,
+  unverified = false,
 }: Props) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || unverified) return;
     fireConfetti();
-  }, [open]);
+  }, [open, unverified]);
+
+  const resolvedTitle = unverified
+    ? 'Thanks for pitching in!'
+    : (title ?? 'Cleanup Complete!');
+  const resolvedSubtitle = unverified
+    ? "We couldn't verify your photo this time, so no points — but we really appreciate you helping out!"
+    : (subtitle ?? 'You made the world a little cleaner.');
 
   return (
     <AnimatePresence>
@@ -135,7 +144,7 @@ export function CleanupCelebration({
               transition={{ delay: 0.35, duration: 0.3 }}
               className="text-2xl font-bold tracking-tight"
             >
-              {title}
+              {resolvedTitle}
             </motion.h2>
             <motion.p
               initial={{ y: 10, opacity: 0 }}
@@ -143,9 +152,10 @@ export function CleanupCelebration({
               transition={{ delay: 0.45, duration: 0.3 }}
               className="mt-1 text-sm text-black/60"
             >
-              {subtitle}
+              {resolvedSubtitle}
             </motion.p>
 
+            {unverified ? null : (
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -177,6 +187,7 @@ export function CleanupCelebration({
                 </motion.div>
               ) : null}
             </motion.div>
+            )}
 
             <motion.div
               initial={{ y: 10, opacity: 0 }}

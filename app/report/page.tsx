@@ -13,7 +13,7 @@ import {
 } from '@plogg/supabase';
 import { HotspotInsert } from '@plogg/types';
 import imageCompression from 'browser-image-compression';
-import { Camera, Check } from 'lucide-react';
+import { Camera, Check, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -49,6 +49,7 @@ function ReportPageInner() {
   const [cleanupPhotoPreview, setCleanupPhotoPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [scoring, setScoring] = useState<null | 'report' | 'cleanup'>(null);
   const [celebration, setCelebration] = useState<{
     open: boolean;
     pointsEarned: number;
@@ -166,11 +167,17 @@ function ReportPageInner() {
 
       type ScoreResponse = { points: number; valid: boolean };
 
-      const reportRes = await fetch('/api/report/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hotspotId: newHotspot.id }),
-      });
+      setScoring('report');
+      let reportRes: Response;
+      try {
+        reportRes = await fetch('/api/report/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hotspotId: newHotspot.id }),
+        });
+      } finally {
+        setScoring(null);
+      }
       if (reportRes.status === 422) {
         const errJson = (await reportRes.json().catch(() => null)) as
           | { rationale?: string; confidence?: number }
@@ -223,6 +230,7 @@ function ReportPageInner() {
       let cleanupPoints = 0;
       let cleanupValid = false;
       if (alreadyCleaned) {
+        setScoring('cleanup');
         try {
           const res = await fetch('/api/cleanup/score', {
             method: 'POST',
@@ -235,6 +243,8 @@ function ReportPageInner() {
           cleanupValid = json.valid;
         } catch (err) {
           console.warn('[ai-scoring] cleanup failed', err);
+        } finally {
+          setScoring(null);
         }
       }
 
@@ -461,13 +471,22 @@ function ReportPageInner() {
         ) : null}
 
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting
-            ? alreadyCleaned
-              ? 'Submitting…'
-              : 'Reporting…'
-            : alreadyCleaned
-              ? 'Report & mark cleaned'
-              : 'Report trash'}
+          <span className="inline-flex items-center justify-center gap-2">
+            {submitting ? (
+              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+            ) : null}
+            {scoring === 'report'
+              ? 'Checking your photo…'
+              : scoring === 'cleanup'
+                ? 'Analyzing your cleanup…'
+                : submitting
+                  ? alreadyCleaned
+                    ? 'Submitting…'
+                    : 'Reporting…'
+                  : alreadyCleaned
+                    ? 'Report & mark cleaned'
+                    : 'Report trash'}
+          </span>
         </Button>
       </form>
 

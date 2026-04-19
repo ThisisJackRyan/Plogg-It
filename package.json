@@ -69,5 +69,8 @@
   "overrides": {
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2"
+  },
+  "optionalDependencies": {
+    "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }

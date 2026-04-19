@@ -1,9 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import ReportPage from '@/app/report/page';
 
 export default function ReportModal() {
+  const pathname = usePathname();
+  if (pathname !== '/report') return null;
   return (
     <div className="fixed inset-x-0 bottom-0 top-12 z-10 overflow-y-auto bg-white">
       <motion.div

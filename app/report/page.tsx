@@ -486,6 +486,9 @@ function ReportPageInner() {
           router.replace('/');
           router.refresh();
         }}
+        onSeeLeaderboard={() => {
+          router.replace('/leaderboard');
+        }}
       />
     </PageTransition>
     </main>

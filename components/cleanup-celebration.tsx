@@ -2,7 +2,6 @@
 
 import confetti from 'canvas-confetti';
 import { AnimatePresence, motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 
@@ -11,6 +10,7 @@ type Props = {
   pointsEarned: number;
   totalPoints: number | null;
   onContinue: () => void;
+  onSeeLeaderboard: () => void;
   title?: string;
   subtitle?: string;
   unverified?: boolean;
@@ -55,6 +55,7 @@ export function CleanupCelebration({
   pointsEarned,
   totalPoints,
   onContinue,
+  onSeeLeaderboard,
   title,
   subtitle,
   unverified = false,
@@ -198,12 +199,13 @@ export function CleanupCelebration({
               <Button type="button" className="w-full py-3 text-base" onClick={onContinue}>
                 Continue
               </Button>
-              <Link
-                href="/leaderboard"
+              <button
+                type="button"
+                onClick={onSeeLeaderboard}
                 className="text-xs text-brand-700 hover:underline"
               >
                 See the leaderboard
-              </Link>
+              </button>
             </motion.div>
           </motion.div>
         </motion.div>

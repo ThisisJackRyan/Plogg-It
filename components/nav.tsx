@@ -12,6 +12,8 @@ export async function TopNav() {
     getSupabaseServer(),
   ]);
 
+  if (!userId) return null;
+
   let profileHref = '/me';
   if (userId && supabase) {
     const profile = await getProfileById(supabase, userId);
@@ -27,8 +29,7 @@ export async function TopNav() {
           className="shrink-0 text-sm font-semibold sm:text-base"
           aria-label="Plogg Club home"
         >
-          <span className="hidden sm:inline">Plogg Club</span>
-          <span className="sm:hidden">Plogg</span>
+          Plogg.Club
         </Link>
       </div>
       <NavLinks profileHref={profileHref} />

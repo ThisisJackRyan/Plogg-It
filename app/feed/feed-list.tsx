@@ -14,7 +14,7 @@ export function FeedList() {
     useFeed(supabase, 20);
 
   if (isLoading) {
-    return <p className="py-12 text-center text-sm opacity-60">Loading feed…</p>;
+    return null;
   }
   if (isError) {
     return <p className="py-12 text-center text-sm text-red-600">{error?.message}</p>;

@@ -38,16 +38,12 @@ const STORAGE_KEY = 'plogg-nav-active';
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-export function NavLinks({ profileHref }: { profileHref: string }) {
+function useNavState(profileHref: string) {
   const pathname = usePathname();
   const active = deriveActive(pathname, profileHref);
   const [rendered, setRendered] = useState<NavKey | undefined>(active);
-  const [menuOpen, setMenuOpen] = useState(false);
   const { setPending } = useNavigationPending();
 
-  // Before paint on the client, if the previous route had a different active tab,
-  // render the pill at that previous tab so the post-paint re-render below
-  // animates it sliding into the new tab.
   useIsomorphicLayoutEffect(() => {
     const prev = window.sessionStorage.getItem(STORAGE_KEY) as NavKey | null;
     if (prev && prev !== active) {
@@ -60,24 +56,8 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
   useEffect(() => {
     if (rendered !== active) setRendered(active);
     if (active) window.sessionStorage.setItem(STORAGE_KEY, active);
-    // We only want to trigger the slide after the initial paint, not every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
-
-  // Close the mobile menu on route change.
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  // Lock body scroll while the mobile menu is open.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [menuOpen]);
 
   const selectOptimistically = (key: NavKey) => {
     if (rendered !== key) setRendered(key);
@@ -87,51 +67,75 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
     }
   };
 
-  return (
-    <>
-      {/* Desktop / tablet inline pill nav */}
-      <nav className="hidden min-w-0 items-center gap-0.5 sm:flex sm:gap-1">
-        <LayoutGroup>
-          {items.map(({ key, href, label }) => {
-            const realHref = key === 'profile' ? profileHref : href;
-            const isActive = rendered === key;
-            const handle = () => selectOptimistically(key);
-            return (
-              <Link
-                key={key}
-                href={realHref}
-                onClick={handle}
-                onTouchStart={handle}
-                className="relative rounded-full px-1.5 py-1.5 text-[11px] font-semibold transition-transform duration-200 active:scale-[0.95] min-[400px]:px-2 sm:px-3 sm:py-2 sm:text-sm"
-              >
-                {isActive ? (
-                  <motion.span
-                    layoutId="nav-active-pill"
-                    className="absolute inset-0 rounded-full bg-brand-600 shadow-sm"
-                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  />
-                ) : null}
-                <span
-                  className={`relative z-10 transition-colors duration-200 ${
-                    isActive ? 'text-white' : 'text-black/70 hover:text-black'
-                  }`}
-                >
-                  {label}
-                </span>
-              </Link>
-            );
-          })}
-        </LayoutGroup>
-      </nav>
+  return { pathname, active, rendered, selectOptimistically };
+}
 
-      {/* Mobile hamburger */}
+export function NavLinks({ profileHref }: { profileHref: string }) {
+  const { rendered, selectOptimistically } = useNavState(profileHref);
+
+  return (
+    <nav className="hidden min-w-0 items-center gap-0.5 sm:flex sm:gap-1">
+      <LayoutGroup>
+        {items.map(({ key, href, label }) => {
+          const realHref = key === 'profile' ? profileHref : href;
+          const isActive = rendered === key;
+          const handle = () => selectOptimistically(key);
+          return (
+            <Link
+              key={key}
+              href={realHref}
+              onClick={handle}
+              onTouchStart={handle}
+              className="relative rounded-full px-1.5 py-1.5 text-[11px] font-semibold transition-transform duration-200 active:scale-[0.95] min-[400px]:px-2 sm:px-3 sm:py-2 sm:text-sm"
+            >
+              {isActive ? (
+                <motion.span
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-full bg-brand-600 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              ) : null}
+              <span
+                className={`relative z-10 transition-colors duration-200 ${
+                  isActive ? 'text-white' : 'text-black/70 hover:text-black'
+                }`}
+              >
+                {label}
+              </span>
+            </Link>
+          );
+        })}
+      </LayoutGroup>
+    </nav>
+  );
+}
+
+export function MobileNav({ profileHref }: { profileHref: string }) {
+  const { pathname, rendered, selectOptimistically } = useNavState(profileHref);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
+
+  return (
+    <div className="sm:hidden">
       <button
         type="button"
         aria-label={menuOpen ? 'Close menu' : 'Open menu'}
         aria-expanded={menuOpen}
         aria-controls="mobile-nav-menu"
         onClick={() => setMenuOpen((v) => !v)}
-        className="relative z-40 -ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-black/80 hover:bg-black/5 active:scale-[0.95] sm:hidden"
+        className="relative z-40 inline-flex h-9 w-9 items-center justify-center rounded-full text-black/80 hover:bg-black/5 active:scale-[0.95]"
       >
         <span className="sr-only">{menuOpen ? 'Close menu' : 'Open menu'}</span>
         <svg
@@ -164,7 +168,7 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
           <>
             <motion.div
               key="mobile-nav-overlay"
-              className="fixed inset-0 z-30 bg-black/30 sm:hidden"
+              className="fixed inset-0 z-30 bg-black/30"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -175,7 +179,7 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
             <motion.nav
               key="mobile-nav-menu"
               id="mobile-nav-menu"
-              className="fixed inset-x-0 top-[calc(3rem+env(safe-area-inset-top))] z-30 mx-2 flex flex-col gap-1 rounded-2xl border border-black/5 bg-white p-2 shadow-xl sm:hidden"
+              className="fixed inset-x-0 top-[calc(3rem+env(safe-area-inset-top))] z-30 mx-2 flex flex-col gap-1 rounded-2xl border border-black/5 bg-white p-2 shadow-xl"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -207,6 +211,6 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
           </>
         ) : null}
       </AnimatePresence>
-    </>
+    </div>
   );
 }

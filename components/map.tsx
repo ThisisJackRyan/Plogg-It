@@ -4,14 +4,14 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { motion } from 'framer-motion';
 import type { BoundingBox, Hotspot, HotspotStatusFilter } from '@plogg/types';
-import { haversineMeters } from '@plogg/core';
+import { bboxContains, expandBbox, haversineMeters } from '@plogg/core';
 import type { LngLat } from '@plogg/core';
 import { useHotspotsInBbox, useInsertWaypoints } from '@plogg/supabase';
 import { CheckCircle2, MapPin } from 'lucide-react';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MapGL, {
   GeolocateControl,
   Layer,
@@ -83,7 +83,7 @@ export function PloggMap() {
   }, [searchParams]);
 
   const mapRef = useRef<MapRef | null>(null);
-  const [bbox, setBbox] = useState<BoundingBox | null>(null);
+  const [fetchBbox, setFetchBbox] = useState<BoundingBox | null>(null);
   const [filter, setFilter] = useState<HotspotStatusFilter>('active');
   const [selected, setSelected] = useState<Hotspot | null>(null);
   const [initialView, setInitialView] = useState<typeof FALLBACK_VIEW>(
@@ -265,30 +265,48 @@ export function PloggMap() {
     return coords;
   }, [pathPoints, routeSession.isActive, userLocation]);
 
-  const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, bbox, filter);
+  const { data: hotspots, isFetching } = useHotspotsInBbox(supabase, fetchBbox, filter);
 
-  const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
-    const bounds = evt.target.getBounds();
+  // Refresh fetchBbox only when the viewport leaves the cached buffer or its
+  // size changes enough that the buffer is no longer well-sized. Small pans
+  // inside the buffer leave fetchBbox untouched, so the React Query key is
+  // stable and no refetch fires.
+  const refreshFetchBboxIfNeeded = useCallback((map: MapboxMap) => {
+    const bounds = map.getBounds();
     if (!bounds) return;
-    setBbox({
+    const viewport: BoundingBox = {
       minLng: bounds.getWest(),
       minLat: bounds.getSouth(),
       maxLng: bounds.getEast(),
       maxLat: bounds.getNorth(),
+    };
+    setFetchBbox((prev) => {
+      if (prev && bboxContains(prev, viewport)) {
+        const prevLngSpan = prev.maxLng - prev.minLng;
+        const viewLngSpan = viewport.maxLng - viewport.minLng;
+        const ratio = prevLngSpan / Math.max(viewLngSpan, 1e-9);
+        // Buffer is ~3× viewport span (0.5 pad each side). Refresh if zoomed
+        // way in (buffer too sparse) or way out (buffer too small).
+        if (ratio < 6 && ratio > 1.5) return prev;
+      }
+      return expandBbox(viewport, 0.5);
     });
   }, []);
 
-  const handleLoad = useCallback((evt: { target: MapboxMap }) => {
-    setMapLoaded(true);
-    const bounds = evt.target.getBounds();
-    if (!bounds) return;
-    setBbox({
-      minLng: bounds.getWest(),
-      minLat: bounds.getSouth(),
-      maxLng: bounds.getEast(),
-      maxLat: bounds.getNorth(),
-    });
-  }, []);
+  const handleMoveEnd = useCallback(
+    (evt: ViewStateChangeEvent) => {
+      refreshFetchBboxIfNeeded(evt.target);
+    },
+    [refreshFetchBboxIfNeeded],
+  );
+
+  const handleLoad = useCallback(
+    (evt: { target: MapboxMap }) => {
+      setMapLoaded(true);
+      refreshFetchBboxIfNeeded(evt.target);
+    },
+    [refreshFetchBboxIfNeeded],
+  );
 
   // Center on the user the first time we have both a map and a location.
   // `initialViewState` is only read on mount, and `flyTo` silently no-ops if
@@ -378,18 +396,7 @@ export function PloggMap() {
         />
 
         {hotspots?.map((h) => (
-          <Marker
-            key={h.id}
-            longitude={h.lng}
-            latitude={h.lat}
-            anchor="bottom"
-            onClick={(e) => {
-              e.originalEvent?.stopPropagation();
-              setSelected(h);
-            }}
-          >
-            <PinMarker hotspot={h} />
-          </Marker>
+          <HotspotMarker key={h.id} hotspot={h} onSelect={setSelected} />
         ))}
 
         {selected ? (
@@ -622,7 +629,33 @@ function FilterPills({
   );
 }
 
-function PinMarker({ hotspot }: { hotspot: Hotspot }) {
+const HotspotMarker = memo(function HotspotMarker({
+  hotspot,
+  onSelect,
+}: {
+  hotspot: Hotspot;
+  onSelect: (h: Hotspot) => void;
+}) {
+  const handleClick = useCallback(
+    (e: { originalEvent?: { stopPropagation: () => void } }) => {
+      e.originalEvent?.stopPropagation();
+      onSelect(hotspot);
+    },
+    [hotspot, onSelect],
+  );
+  return (
+    <Marker
+      longitude={hotspot.lng}
+      latitude={hotspot.lat}
+      anchor="bottom"
+      onClick={handleClick}
+    >
+      <PinMarker hotspot={hotspot} />
+    </Marker>
+  );
+});
+
+const PinMarker = memo(function PinMarker({ hotspot }: { hotspot: Hotspot }) {
   if (hotspot.status === 'cleaned') {
     return (
       <svg width="28" height="36" viewBox="0 0 28 36" aria-hidden>
@@ -656,7 +689,7 @@ function PinMarker({ hotspot }: { hotspot: Hotspot }) {
       <circle cx="14" cy="13" r="4.5" fill="white" />
     </svg>
   );
-}
+});
 
 function HotspotCard({ hotspot }: { hotspot: Hotspot }) {
   const isCleaned = hotspot.status === 'cleaned';

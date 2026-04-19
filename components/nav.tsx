@@ -26,7 +26,7 @@ export async function TopNav() {
         aria-label="Plogg Club home"
       >
         <span className="hidden sm:inline">Plogg Club</span>
-        <span className="hidden min-[380px]:inline sm:hidden">Plogg</span>
+        <span className="sm:hidden">Plogg</span>
       </Link>
       <NavLinks profileHref={profileHref} />
       <div className="flex shrink-0 items-center">

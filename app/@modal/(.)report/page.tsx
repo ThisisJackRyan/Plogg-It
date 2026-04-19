@@ -8,7 +8,7 @@ export default function ReportModal() {
   const pathname = usePathname();
   if (pathname !== '/report') return null;
   return (
-    <div className="fixed inset-x-0 bottom-0 top-12 z-10 overflow-y-auto bg-white">
+    <div className="fixed inset-x-0 bottom-0 top-[calc(3rem+env(safe-area-inset-top))] z-10 overflow-y-auto bg-white">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
